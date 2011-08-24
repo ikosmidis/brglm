@@ -1,0 +1,556 @@
+
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i386-apple-darwin9.8.0/i386 (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "brglm"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('brglm')
+Loading required package: profileModel
+> 
+> assign(".oldSearch", search(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("brglm")
+> ### * brglm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: brglm
+> ### Title: Bias reduction in Binomial-response GLMs
+> ### Aliases: brglm brglm.fit print.brglm summary.brglm print.summary.brglm
+> ### Keywords: models regression iteration
+> 
+> ### ** Examples
+> 
+> ## Begin Example
+> data(lizards)
+> # Fit the GLM using maximum likelihood
+> lizards.glm <- brglm(cbind(grahami, opalinus) ~ height + diameter +
++                   light + time, family = binomial(logit), data=lizards,
++                   method = "glm.fit")
+> # Now the bias-reduced fit:
+> lizards.brglm <- brglm(cbind(grahami, opalinus) ~ height + diameter +
++                   light + time, family = binomial(logit), data=lizards,
++                   method = "brglm.fit")
+> lizards.glm
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter + 
+    light + time, family = binomial(logit), data = lizards, method = "glm.fit")
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.9447        1.1300       -0.7626       -0.8473        0.2271  
+    timelate  
+     -0.7368  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Null Deviance:	    70.1 
+Residual Deviance: 14.2 	AIC: 83.03 
+> lizards.brglm
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(logit), data = lizards, method = "brglm.fit") 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.9018        1.1064       -0.7536       -0.8177        0.2280  
+    timelate  
+     -0.7273  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    14.2462 
+Penalized Deviance: -4.0065 	AIC: 83.0704 
+> # Other links
+> update(lizards.brglm, family = binomial(probit))
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(probit), data = lizards,      method = "brglm.fit") 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.1504        0.6388       -0.4413       -0.4947        0.1330  
+    timelate  
+     -0.4344  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    13.3465 	AIC: 82.1707 
+> update(lizards.brglm, family = binomial(cloglog))
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(cloglog), data = lizards,      method = "brglm.fit") 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      0.7603        0.5676       -0.4013       -0.4688        0.1190  
+    timelate  
+     -0.4181  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    12.1124 	AIC: 80.9366 
+> update(lizards.brglm, family = binomial(cauchit))
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(cauchit), data = lizards,      method = "brglm.fit") 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.8262        1.3531       -0.8355       -0.7873        0.2791  
+    timelate  
+     -0.6751  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    20.4465 	AIC: 89.2707 
+> # Using penalized maximum likelihood
+> update(lizards.brglm, family = binomial(probit), pl = TRUE)
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(probit), data = lizards,      method = "brglm.fit", pl = TRUE) 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.1553        0.6413       -0.4422       -0.4982        0.1328  
+    timelate  
+     -0.4354  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    13.3325 
+Penalized Deviance: -11.5316 	AIC: 82.1567 
+> update(lizards.brglm, family = binomial(cloglog), pl = TRUE)
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(cloglog), data = lizards,      method = "brglm.fit", pl = TRUE) 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      0.7705        0.5713       -0.4020       -0.4754        0.1182  
+    timelate  
+     -0.4181  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    12.0879 
+Penalized Deviance: -14.0549 	AIC: 80.9122 
+> update(lizards.brglm, family = binomial(cauchit), pl = TRUE)
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial(cauchit), data = lizards,      method = "brglm.fit", pl = TRUE) 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.7804        1.3157       -0.8250       -0.7582        0.2789  
+    timelate  
+     -0.6702  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    20.5953 
+Penalized Deviance: 4.3831 	AIC: 89.4195 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("confint.brglm")
+> ### * confint.brglm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: confint.brglm
+> ### Title: Computes confidence intervals of parameters for bias-reduced
+> ###   estimation
+> ### Aliases: confint.brglm confint.profile.brglm
+> ### Keywords: models htest
+> 
+> ### ** Examples
+> 
+> ## Begin Example 1
+> ## Not run: 
+> ##D library(MASS)
+> ##D data(bacteria)
+> ##D contrasts(bacteria$trt) <- structure(contr.sdif(3),
+> ##D           dimnames = list(NULL, c("drug", "encourage")))
+> ##D # fixed effects analyses
+> ##D m.glm.logit <- brglm(y ~ trt * week, family = binomial,
+> ##D                      data = bacteria, method = "glm.fit")
+> ##D m.brglm.logit <- brglm(y ~ trt * week, family = binomial,
+> ##D                        data = bacteria, method = "brglm.fit")
+> ##D p.glm.logit <- profile(m.glm.logit)
+> ##D p.brglm.logit <- profile(m.brglm.logit)
+> ##D # 
+> ##D plot(p.glm.logit)
+> ##D plot(p.brglm.logit)
+> ##D # confidence intervals for the glm fit based on the profiles of the
+> ##D # ordinary deviance
+> ##D confint(p.glm.logit)
+> ##D # confidence intervals for the brglm fit
+> ##D confint(p.brglm.logit, ci.method = "union")
+> ##D confint(p.brglm.logit, ci.method = "mean")
+> ##D # A cloglog link
+> ##D m.brglm.cloglog <- update(m.brglm.logit, family = binomial(cloglog))
+> ##D p.brglm.cloglog <- profile(m.brglm.cloglog)
+> ##D plot(p.brglm.cloglog)
+> ##D confint(m.brglm.cloglog, ci.method = "union")
+> ##D confint(m.brglm.cloglog, ci.method = "mean")
+> ##D ## End example
+> ## End(Not run)
+> ## Begin Example 2
+> y <- c(1, 1, 0, 0)
+> totals <- c(2, 2, 2, 2)
+> x1 <- c(1, 0, 1, 0)
+> x2 <- c(1, 1, 0, 0)
+> m1 <- brglm(y/totals ~ x1 + x2, weights = totals,
++             family = binomial(cloglog))
+> p.m1 <- profile(m1)
+Profiling the ordinary deviance for the corresponding ML fit...
+Profiling the modified score statistic for the supplied fit...
+> confint(p.m1, method="zoom")
+Calculating confidence intervals for the ML fit using deviance profiles...
+Calculating confidence intervals for the BR fit using modified score statistic profiles...
+                 2.5 %     97.5 %
+(Intercept)       -Inf -0.1110194
+x1          -3.2688405  3.2688405
+x2          -0.3944572        Inf
+> 
+> 
+> 
+> cleanEx()
+> nameEx("lizards")
+> ### * lizards
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: lizards
+> ### Title: Habitat Preferences of Lizards
+> ### Aliases: lizards
+> ### Keywords: datasets
+> 
+> ### ** Examples
+> 
+> data(lizards)
+> glm(cbind(grahami, opalinus) ~ height + diameter + light + time,
++     family = binomial, data=lizards)
+
+Call:  glm(formula = cbind(grahami, opalinus) ~ height + diameter + 
+    light + time, family = binomial, data = lizards)
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.9447        1.1300       -0.7626       -0.8473        0.2271  
+    timelate  
+     -0.7368  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Null Deviance:	    70.1 
+Residual Deviance: 14.2 	AIC: 83.03 
+> brglm(cbind(grahami, opalinus) ~ height + diameter + light + time,
++     family = binomial, data=lizards)
+
+Call:  brglm(formula = cbind(grahami, opalinus) ~ height + diameter +      light + time, family = binomial, data = lizards) 
+
+Coefficients:
+ (Intercept)   height>=5ft  diameter>2in    lightshady    timemidday  
+      1.9018        1.1064       -0.7536       -0.8177        0.2280  
+    timelate  
+     -0.7273  
+
+Degrees of Freedom: 22 Total (i.e. Null);  17 Residual
+Deviance:	    14.2462 
+Penalized Deviance: -4.0065 	AIC: 83.0704 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("modifications")
+> ### * modifications
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: modifications
+> ### Title: Additive Modifications to the Binomial Responses and Totals for
+> ###   Use within 'brglm.fit'
+> ### Aliases: modifications checkModifications
+> ### Keywords: models regression
+> 
+> ### ** Examples
+> 
+> ## Begin Example 1
+> ## logistic exposure model, following the Example in ?family. See,
+> ## Shaffer, T.  2004. Auk 121(2): 526-540.
+> # Definition of the link function
+> logexp <- function(days = 1) {
++   linkfun <- function(mu) qlogis(mu^(1/days))
++   linkinv <- function(eta) plogis(eta)^days
++   mu.eta <- function(eta) days * plogis(eta)^(days-1) *
++         .Call("logit_mu_eta", eta, PACKAGE = "stats")
++   valideta <- function(eta) TRUE
++   link <- paste("logexp(", days, ")", sep="")
++   structure(list(linkfun = linkfun, linkinv = linkinv,
++     mu.eta = mu.eta, valideta = valideta, name = link),
++     class = "link-glm")
++ }
+> # Here d(p) = days * p * ( 1 - p^(1/days) )
+> #      d'(p) = (days - (days+1) * p^(1/days)) * d(p)
+> #      w(p) = days^2 * p * (1-p^(1/days))^2 / (1-p)
+> # Initial modifications, as given from the general expressions above:
+> br.custom.family <- function(p) {
++   etas <- binomial(logexp(.days))$linkfun(p)
++   # the link function argument `.days' will be detected by lexical
++   # scoping. So, make sure that the link-function inputted arguments
++   # have unusual names, like `.days' and that
++   # the link function enters `brglm' as
++   # `family=binomial(logexp(.days))'. 
++   list(ar=0.5*(1-p)-0.5*(1-p)*exp(etas)/.days,
++        at=0*p/p) # so that to fix the length of at
++ }
+> .days <-3
+> # `.days' could be a vector as well but then it should have the same
+> # length as the number of observations (`length(.days)' should be
+> # equal to `length(p)'). In this case, `checkModifications' should
+> # have argument `Length=length(.days)'.
+> #
+> # Check:
+> ## Not run: checkModifications(br.custom.family)
+> # OOOPS error message... the condition is not satisfied
+> #   
+> # After some trivial algebra using the two allowed operations, we
+> # get new modifications:
+> br.custom.family <- function(p) {
++   etas <- binomial(logexp(.days))$linkfun(p)
++   list(ar=0.5*p/p, # so that to fix the length of ar
++        at=0.5+exp(etas)*(1-p)/(2*p*.days))
++ }
+> # Check:
+> checkModifications(br.custom.family)
+[1] TRUE
+> # It is OK.
+> # Now,
+> modifications(binomial(logexp(.days)))
+function (p) 
+{
+    etas <- binomial(logexp(.days))$linkfun(p)
+    list(ar = 0.5 * p/p, at = 0.5 + exp(etas) * (1 - p)/(2 * 
+        p * .days))
+}
+> # works.
+> # Notice that for `.days <- 1', `logexp(.days)' is the `logit' link
+> # model and `a_r=0.5', `a_t=1'.
+> # In action:
+> library(MASS)
+> example(birthwt)
+
+brthwt> attach(birthwt)
+
+brthwt> race <- factor(race, labels = c("white", "black", "other"))
+
+brthwt> ptd <- factor(ptl > 0)
+
+brthwt> ftv <- factor(ftv)
+
+brthwt> levels(ftv)[-(1:2)] <- "2+"
+
+brthwt> bwt <- data.frame(low = factor(low), age, lwt, race,
+brthwt+     smoke = (smoke > 0), ptd, ht = (ht > 0), ui = (ui > 0), ftv)
+
+brthwt> detach("birthwt")
+
+brthwt> options(contrasts = c("contr.treatment", "contr.poly"))
+
+brthwt> glm(low ~ ., binomial, bwt)
+
+Call:  glm(formula = low ~ ., family = binomial, data = bwt)
+
+Coefficients:
+(Intercept)          age          lwt    raceblack    raceother    smokeTRUE  
+    0.82302     -0.03723     -0.01565      1.19241      0.74068      0.75553  
+    ptdTRUE       htTRUE       uiTRUE         ftv1        ftv2+  
+    1.34376      1.91317      0.68020     -0.43638      0.17901  
+
+Degrees of Freedom: 188 Total (i.e. Null);  178 Residual
+Null Deviance:	    234.7 
+Residual Deviance: 195.5 	AIC: 217.5 
+> m.glm <- glm(formula = low ~ ., family = binomial, data = bwt)
+> .days <- bwt$age
+> m.glm.logexp <- update(m.glm,family=binomial(logexp(.days)))
+> m.brglm.logexp <- brglm(formula = low ~ ., family =
++ binomial(logexp(.days)), data = bwt)
+> # The fit for the `logexp' link via maximum likelihood
+> m.glm.logexp
+
+Call:  glm(formula = low ~ ., family = binomial(logexp(.days)), data = bwt)
+
+Coefficients:
+(Intercept)          age          lwt    raceblack    raceother    smokeTRUE  
+    2.83868      0.02191     -0.00841      0.66101      0.43185      0.48563  
+    ptdTRUE       htTRUE       uiTRUE         ftv1        ftv2+  
+    0.88647      1.12203      0.48875     -0.33932      0.03293  
+
+Degrees of Freedom: 188 Total (i.e. Null);  178 Residual
+Null Deviance:	    234.7 
+Residual Deviance: 195 	AIC: 217 
+> # and the fit for the `logexp' link via modified scores
+> m.brglm.logexp
+
+Call:  brglm(formula = low ~ ., family = binomial(logexp(.days)), data = bwt) 
+
+Coefficients:
+(Intercept)          age          lwt    raceblack    raceother    smokeTRUE  
+    2.71199      0.02501     -0.00757      0.61645      0.40427      0.45122  
+    ptdTRUE       htTRUE       uiTRUE         ftv1        ftv2+  
+    0.82952      1.02849      0.46050     -0.30389      0.03941  
+
+Degrees of Freedom: 188 Total (i.e. Null);  178 Residual
+Deviance:	    195.2818 	AIC: 217.2818 
+> ## End Example
+> ## Begin Example 2
+> ## Another possible use of brglm.fit:
+> ## Deviating from bias reducing modified-scores:
+> ## Add 1/2 to the response of a probit model.
+> y <- c(1,2,3,4)
+> totals <- c(5,5,5,5)
+> x1 <- c(1,0,1,0)
+> x2 <- c(1,1,0,0)
+> my.probit <- make.link("probit")
+> my.probit$name <- "my.probit"
+> br.custom.family <- function(p) {
++    h <- pmax(get("hats",parent.frame()),.Machine$double.eps)
++    list(ar=0.5/h,at=1/h)
++ }
+> m1 <- brglm(y/totals~x1+x2,weights=totals,family=binomial(my.probit))
+> m2 <- glm((y+0.5)/(totals+1)~x1+x2,weights=totals+1,family=binomial(probit))
+Warning message:
+In eval(expr, envir, enclos) : non-integer #successes in a binomial glm!
+> # m1 and m2 should be the same.    
+> 
+> 
+> 
+> cleanEx()
+
+detaching ‘package:MASS’
+
+> nameEx("plot.profile.brglm")
+> ### * plot.profile.brglm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: plot.profile.brglm
+> ### Title: Plot methods for 'profile.brglm' objects
+> ### Aliases: plot.profile.brglm pairs.profile.brglm
+> ### Keywords: dplot hplot
+> 
+> ### ** Examples
+> 
+> # see example in 'confint.brglm'.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("profile.brglm")
+> ### * profile.brglm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: profile.brglm
+> ### Title: Calculate profiles for objects of class 'brglm'.
+> ### Aliases: profile.brglm print.profile.brglm
+> ### Keywords: models
+> 
+> ### ** Examples
+> 
+> # see example in 'confint.brglm'.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("separation.detection")
+> ### * separation.detection
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: separation.detection
+> ### Title: Separation Identification.
+> ### Aliases: separation.detection
+> ### Keywords: models utilities
+> 
+> ### ** Examples
+> 
+> ## Begin Example
+> y <- c(1,1,0,0)
+> totals <- c(2,2,2,2)
+> x1 <- c(1,0,1,0)
+> x2 <- c(1,1,0,0)
+> m1 <- glm(y/totals ~ x1 + x2, weights = totals, family = binomial())
+> # No warning from glm...
+> m1
+
+Call:  glm(formula = y/totals ~ x1 + x2, family = binomial(), weights = totals)
+
+Coefficients:
+(Intercept)           x1           x2  
+ -2.390e+01   -5.051e-15    2.390e+01  
+
+Degrees of Freedom: 3 Total (i.e. Null);  1 Residual
+Null Deviance:	    3.452 
+Residual Deviance: 3.33e-10 	AIC: 8.773 
+> # However estimates for (Intercept) and x2 are unusually large in
+> # absolute value... Investigate further:
+> #
+> separation.detection(m1,nsteps=30)
+       (Intercept)       x1           x2
+ [1,] 1.000000e+00 1.000000 1.000000e+00
+ [2,] 1.498944e+00 1.131802 1.422423e+00
+ [3,] 2.343207e+00 1.200091 2.194713e+00
+ [4,] 3.770512e+00 1.229147 3.523304e+00
+ [5,] 6.155899e+00 1.240465 5.750252e+00
+ [6,] 1.011152e+01 1.244720 9.444735e+00
+ [7,] 1.664787e+01 1.246298 1.554995e+01
+ [8,] 2.743356e+01 1.246880 2.562432e+01
+ [9,] 4.522171e+01 1.247094 4.223933e+01
+[10,] 7.455279e+01 1.247173 6.963602e+01
+[11,] 1.229136e+02 1.247202 1.148074e+02
+[12,] 2.026484e+02 1.247213 1.892837e+02
+[13,] 3.341095e+02 1.247217 3.120749e+02
+[14,] 5.508528e+02 1.247218 5.145239e+02
+[15,] 9.082022e+02 1.247219 8.483061e+02
+[16,] 1.497372e+03 1.247219 1.398620e+03
+[17,] 2.468749e+03 1.247219 2.305935e+03
+[18,] 4.070279e+03 1.247219 3.801843e+03
+[19,] 6.710756e+03 1.247219 6.268180e+03
+[20,] 1.106417e+04 1.247219 1.033448e+04
+[21,] 1.824172e+04 1.247219 1.703868e+04
+[22,] 3.007552e+04 1.247219 2.809203e+04
+[23,] 4.958615e+04 1.247219 4.631593e+04
+[24,] 8.175374e+04 1.247219 7.636206e+04
+[25,] 1.347891e+05 1.247219 1.258998e+05
+[26,] 2.222297e+05 1.247219 2.075736e+05
+[27,] 3.663948e+05 1.247219 3.422310e+05
+[28,] 6.040830e+05 1.247219 5.642436e+05
+[29,] 9.959644e+05 1.247219 9.302803e+05
+[30,] 2.146846e+07 1.247219 2.005261e+07
+> # Note that the values in the column for (Intercept) and x2 diverge,
+> # while for x1 converged. Hence, separation has occurred and the
+> # maximum lieklihood estimate for (Intercept) is minus infinity and
+> # for x2 is plus infinity. The signs for infinity are taken from the
+> # signs of (Intercept) and x1 in coef(m1).
+> ## End Example
+> 
+> 
+> 
+> ### * <FOOTER>
+> ###
+> cat("Time elapsed: ", proc.time() - get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  17.057 0.099 17.652 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

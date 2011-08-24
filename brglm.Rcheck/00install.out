@@ -1,0 +1,20 @@
+* installing *source* package ‘brglm’ ...
+** libs
+*** arch - i386
+gcc-4.2 -arch i386 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/i386  -I/usr/local/include    -fPIC  -g -O2 -c hats.c -o hats.o
+gcc-4.2 -arch i386 -std=gnu99 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -single_module -multiply_defined suppress -L/usr/local/lib -o brglm.so hats.o -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation
+installing to /Users/yiannis/Documents/Software/The brglm Package/brglm.Rcheck/brglm/libs/i386
+*** arch - x86_64
+gcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64  -I/usr/local/include    -fPIC  -g -O2 -c hats.c -o hats.o
+gcc-4.2 -arch x86_64 -std=gnu99 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -single_module -multiply_defined suppress -L/usr/local/lib -o brglm.so hats.o -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation
+installing to /Users/yiannis/Documents/Software/The brglm Package/brglm.Rcheck/brglm/libs/x86_64
+** R
+** data
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices ...
+** testing if installed package can be loaded
+
+* DONE (brglm)
