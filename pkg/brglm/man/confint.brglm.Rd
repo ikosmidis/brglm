@@ -116,34 +116,33 @@
 \examples{
 ## Begin Example 1
 \dontrun{
-library(MASS)
-data(bacteria)
-contrasts(bacteria$trt) <- structure(contr.sdif(3),
-          dimnames = list(NULL, c("drug", "encourage")))
+#library(MASS)
+#data(bacteria)
+#contrasts(bacteria$trt) <- structure(contr.sdif(3),
+#          dimnames = list(NULL, c("drug", "encourage")))
 # fixed effects analyses
-m.glm.logit <- brglm(y ~ trt * week, family = binomial,
-                     data = bacteria, method = "glm.fit")
-m.brglm.logit <- brglm(y ~ trt * week, family = binomial,
-                       data = bacteria, method = "brglm.fit")
-p.glm.logit <- profile(m.glm.logit)
-p.brglm.logit <- profile(m.brglm.logit)
+#m.glm.logit <- brglm(y ~ trt * week, family = binomial,
+#                     data = bacteria, method = "glm.fit")
+#m.brglm.logit <- brglm(y ~ trt * week, family = binomial,
+#                       data = bacteria, method = "brglm.fit")
+#p.glm.logit <- profile(m.glm.logit)
+#p.brglm.logit <- profile(m.brglm.logit)
 # 
-plot(p.glm.logit)
-plot(p.brglm.logit)
+#plot(p.glm.logit)
+#plot(p.brglm.logit)
 # confidence intervals for the glm fit based on the profiles of the
 # ordinary deviance
-confint(p.glm.logit)
+#confint(p.glm.logit)
 # confidence intervals for the brglm fit
-confint(p.brglm.logit, ci.method = "union")
-confint(p.brglm.logit, ci.method = "mean")
+#confint(p.brglm.logit, ci.method = "union")
+#confint(p.brglm.logit, ci.method = "mean")
 # A cloglog link
-m.brglm.cloglog <- update(m.brglm.logit, family = binomial(cloglog))
-p.brglm.cloglog <- profile(m.brglm.cloglog)
-plot(p.brglm.cloglog)
-confint(m.brglm.cloglog, ci.method = "union")
-confint(m.brglm.cloglog, ci.method = "mean")
+#m.brglm.cloglog <- update(m.brglm.logit, family = binomial(cloglog))
+#p.brglm.cloglog <- profile(m.brglm.cloglog)
+#plot(p.brglm.cloglog)
+#confint(m.brglm.cloglog, ci.method = "union")
+#confint(m.brglm.cloglog, ci.method = "mean")
 ## End example
-}
 ## Begin Example 2
 y <- c(1, 1, 0, 0)
 totals <- c(2, 2, 2, 2)
@@ -153,6 +152,7 @@ m1 <- brglm(y/totals ~ x1 + x2, weights = totals,
             family = binomial(cloglog))
 p.m1 <- profile(m1)
 confint(p.m1, method="zoom")
+}
 }
 \keyword{models}
 \keyword{htest}

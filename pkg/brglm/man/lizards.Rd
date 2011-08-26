@@ -33,10 +33,10 @@ times of day.
   patchy habitats.  \emph{Ecology} \bold{51}, 408--418.
 }
 \examples{
-data(lizards)
-glm(cbind(grahami, opalinus) ~ height + diameter + light + time,
-    family = binomial, data=lizards)
-brglm(cbind(grahami, opalinus) ~ height + diameter + light + time,
-    family = binomial, data=lizards)
+#data(lizards)
+#glm(cbind(grahami, opalinus) ~ height + diameter + light + time,
+#    family = binomial, data=lizards)
+#brglm(cbind(grahami, opalinus) ~ height + diameter + light + time,
+#    family = binomial, data=lizards)
 }
 \keyword{datasets}

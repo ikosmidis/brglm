@@ -171,6 +171,7 @@ there exists \eqn{(y^*, m^*)}{(y*, m*)} such that if we replace the actual data
 }
 \seealso{\code{\link{brglm}}, \code{\link{brglm.fit}}}
 \examples{
+\dontrun{
 ## Begin Example 1
 ## logistic exposure model, following the Example in ?family. See,
 ## Shaffer, T.  2004. Auk 121(2): 526-540.
@@ -254,7 +255,8 @@ br.custom.family <- function(p) {
 }
 m1 <- brglm(y/totals~x1+x2,weights=totals,family=binomial(my.probit))
 m2 <- glm((y+0.5)/(totals+1)~x1+x2,weights=totals+1,family=binomial(probit))
-# m1 and m2 should be the same.    
+# m1 and m2 should be the same.
+}
 }
 \keyword{models}
 \keyword{regression}

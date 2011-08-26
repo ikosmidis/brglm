@@ -39,6 +39,7 @@ discrimination. \emph{J. R. Statist. Soc. \bold{B}}, \bold{51}, 109--116.
 \author{Ioannis Kosmidis, \email{ioannis@stats.ucl.ac.uk}}
 
 \examples{
+\dontrun{
 ## Begin Example
 y <- c(1,1,0,0)
 totals <- c(2,2,2,2)
@@ -57,6 +58,7 @@ separation.detection(m1,nsteps=30)
 # for x2 is plus infinity. The signs for infinity are taken from the
 # signs of (Intercept) and x1 in coef(m1).
 ## End Example
+}
 }
 \keyword{models}
 \keyword{utilities}
