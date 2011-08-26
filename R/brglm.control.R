@@ -1,11 +1,39 @@
-`brglm.control` <-
-function (br.epsilon = 1e-08, br.maxit = 100, br.trace = FALSE,
-          br.consts = NULL, ...) 
-{
-    if (!is.numeric(br.epsilon) || br.epsilon <= 0) 
-        stop("value of 'epsilon' must be > 0")
-    if (!is.numeric(br.maxit) || br.maxit <= 0) 
-        stop("maximum number of iterations must be > 0")
-    list(br.epsilon = br.epsilon, br.maxit = br.maxit, br.trace = br.trace,
-         br.consts = br.consts)
+brglm.control <- function(epsilon = 1e-07, maxit = 100,
+                          trace = FALSE,
+                          correction = FALSE,
+                          dispTrans = "inverseSqrt",
+                          slowit = 1) {
+  Trans <- switch(dispTrans,
+                  identity = expression(disp),
+                  sqrt = expression(disp^0.5),
+                  inverse = expression(1/disp),
+                  log = expression(log(disp)),
+                  inverseSqrt = expression(1/sqrt(disp)),
+                  custom = customTrans[[1]])
+  inverseTrans <- switch(dispTrans,
+                         identity = expression(transdisp),
+                         sqrt = expression(transdisp^2),
+                         inverse = expression(1/transdisp),
+                         log = expression(exp(transdisp)),
+                         inverseSqrt = expression(1/transdisp^2),
+                         custom = customTrans[[2]])
+  if (!(dispTrans %in% c("identity",
+                         "sqrt",
+                         "inverse",
+                         "log",
+                         "custom",
+                         "inverseSqrt"))) {
+    stop(dispTrans, " is not a supported transofrmation of the dispersion")
+  }
+# No check is being made whether Trans and inverseTrans agree
+  if (!is.numeric(epsilon) || epsilon <= 0)
+    stop("value of 'epsilon' must be > 0")
+  if (!is.numeric(maxit) || maxit <= 0)
+    stop("maximum number of iterations must be > 0")
+  list(epsilon = epsilon, maxit = maxit, trace = trace,
+       correction = correction,
+       Trans = Trans,
+       inverseTrans = inverseTrans,
+       dispTrans = dispTrans,
+       slowit = slowit)
 }

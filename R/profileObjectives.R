@@ -1,26 +1,29 @@
-`modifiedScoreStatistic` <-
-function (fm, X, dispersion = 1) 
+adjustedScoreStatistic <- function (fm, X, dispersion = 1)
 {
+  # check for zero weights and zero varmu?
     y <- fm$y
-    wt <- fm$prior
-    LP <- fm$linear
+    wt <- fm$prior.weights
+    LP <- fm$linear.predictor
     family <- fm$family
-    probs <- family$linkinv(LP)
-    dmu.deta <- family$mu.eta
-    variance <- family$variance
-    we <- c(wt * dmu.deta(LP)^2/variance(probs))
-    W.X <- sqrt(we) * X
+    mu <- family$linkinv(LP)
+    dmu <- family$mu.eta(LP)
+    ddmu <- family$dmu.deta(LP)
+    varmu <- family$variance(mu)
+    w <- wt * dmu^2/varmu
+    W.X <- sqrt(w) * X
     XWXinv <- chol2inv(chol(crossprod(W.X)))
-    hats <- diag(X %*% XWXinv %*% t(we * X))
-    cur.model <- modifications(family, pl = fm$pl)(probs)
-    mod.wt <- wt + c(hats * cur.model$at)
-    y.adj <- (y * wt + hats * cur.model$ar)/mod.wt
-    s.star <- t(c(dmu.deta(LP)/variance(probs)) * X) %*% ((y.adj - 
-        probs) * mod.wt)
-    t(s.star) %*% XWXinv %*% s.star
+    hats <- diag(X %*% XWXinv %*% t(w * X))
+    scoresComp <- wt * dmu/varmu * (y - mu) * X
+    adjExpComp <- 0.5 * hats * ddmu/dmu * X
+    scores <- colSums(scoresComp)
+    adjExp <- colSums(adjExpComp)
+    adjscores <- scores/dispersion + adjExp
+    dispersion * t(adjscores) %*% XWXinv %*% adjscores
 }
-`penalizedDeviance` <-
-function (fm, X, dispersion = 1) 
+
+
+### Needs work...
+penalizedDeviance <- function (fm, X, dispersion = 1)
 {
     Y <- fm$y
     LP <- fm$linear.predictor
