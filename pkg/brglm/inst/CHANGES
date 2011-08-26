@@ -1,0 +1,29 @@
+Changes since version 0.5.5
+----------------------------
+* Added the br.consts argument to brglm.control which offers some handling of the starting values to the brglm.fit iteration.
+* Updated contact and citation information. 
+
+Changes since version 0.5.4
+----------------------------
+* Improved constant adjustments for starting the fitting procedure in brglm.fit.
+* Updated the references to papers in the help files.
+
+Changes since version 0.5.3 
+----------------------------
+* Minor corrections to the help files.
+* The reported AIC, was incorrect, due to a minor bug. This is now corrected.
+* Minor modifications to the separation.detection function
+* Due to a bug, brglm was mishandling observations with zero weight. This is now corrected.
+* Some improvements to profile and confint methods for brglm objects.
+* Added citation file.
+
+
+Changes since version 0.5.2
+----------------------------
+*	Corrected a bug in brglm that could cause division by zero while scaling the design matrix.
+*	Due to a bug, brglm.fit was producing errors with model fits containing more that one aliased out parameters. This is now corrected (thanks to Aleks Jakulin for spotting the issue).
+*	Corrected a bug, that could affect the predict methods when aliased out parameters appeared (thanks to Aleks Jakulin for spotting the issue). 
+
+Changes since version 0.5-1:
+----------------------------
+*	Correction of typos (sorry!) and various improvements of the help files.
