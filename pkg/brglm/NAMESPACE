@@ -1,26 +1,24 @@
 useDynLib("brglm",.registration=TRUE)
 
-export(modifications, 
-       checkModifications, 
-       summary.brglm, 
-       print.summary.brglm, 
-       print.brglm, 
-       brglm, 
+export(modifications,
+       checkModifications,
+       summary.brglm,
+       print.summary.brglm,
+       print.brglm,
        brglm.fit,
-       brglm.control, 
-       glm.control1, 
+       brglm.control,
        separation.detection,
        gethats,
        penalizedDeviance,
        modifiedScoreStatistic,
-       profile.brglm, 
-       confint.brglm, 
-       confint.profile.brglm, 
+       profile.brglm,
+       confint.brglm,
+       confint.profile.brglm,
        print.profile.brglm,
        plot.profile.brglm,
        pairs.profile.brglm)
 
-S3method(print, brglm)
+## S3method(print, brglm)
 S3method(summary, brglm)
 S3method(profile, brglm)
 S3method(confint, brglm)
@@ -28,5 +26,5 @@ S3method(confint, profile.brglm)
 S3method(plot, profile.brglm)
 S3method(pairs, profile.brglm)
 S3method(print, profile.brglm)
-S3method(print, summary.brglm)
+## S3method(print, summary.brglm)
 

@@ -1,7 +1,11 @@
-require(profileModel)
+print.profile.brglm <- function (x, ...)
+{
+    cat("'level' was set to", attr(x, "level"), "\n")
+    cat("Methods that apply:\n")
+    cat("'confint'  'plot' 'pairs'\n")
+}
 
-profile.brglm <-
-  function (fm,
+profile.brglm <-   function (fm,
             gridsize = 20,
             stdn = 5,
             stepsize = 0.5,
