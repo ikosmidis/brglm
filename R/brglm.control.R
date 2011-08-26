@@ -1,7 +1,7 @@
 brglm.control <- function(epsilon = 1e-07, maxit = 100,
                           trace = FALSE,
                           correction = FALSE,
-                          dispTrans = "inverseSqrt",
+                          dispTrans = "identity",
                           slowit = 1) {
   Trans <- switch(dispTrans,
                   identity = expression(disp),

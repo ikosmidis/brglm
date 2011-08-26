@@ -1,4 +1,4 @@
-ﬁconfint.brglm <- function (fm,
+confint.brglm <- function (fm,
                             parm = 1:length(coef(fm)),
                             level = 0.95,
                             verbose = TRUE,
