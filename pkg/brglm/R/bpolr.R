@@ -16,8 +16,6 @@ bpolr <- function(formula,
                   slowIt = 1,
                   reparam = FALSE,
                   ...) {
-  require(gnm)
-  require(ordinal)
   M  <- match.call(expand.dots = FALSE)
   if (missing(formula)) stop("A specification of location is absent")
   link <- match.arg(link)
@@ -47,6 +45,8 @@ bpolr <- function(formula,
                   cloglog = function(eta) dfun(eta)*(1 + log(1 - pfun(eta))),
                   cauchit = function(eta) -2*pi*eta*dfun(eta)^2)
 
+  require(gnm)
+  require(ordinal)
   method <- match.arg(method)
   if (is.matrix(eval.parent(M$data)))
     M$data <- as.data.frame(data)
@@ -85,7 +85,6 @@ bpolr <- function(formula,
   #
   MLocation <- eval(MLocation)
   MScale <- eval(MScale)
-  browser()
   TermsL <- attr(MLocation, "terms")
   TermsS <- attr(MScale, "terms")
   # Useful integers
