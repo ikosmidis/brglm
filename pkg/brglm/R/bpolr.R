@@ -1,3 +1,8 @@
+
+
+
+### Problems with subset
+
 bpolr <- function(formula,
                   scale,
                   data,
@@ -44,7 +49,6 @@ bpolr <- function(formula,
                   probit = function(eta) -eta*dfun(eta),
                   cloglog = function(eta) dfun(eta)*(1 + log(1 - pfun(eta))),
                   cauchit = function(eta) -2*pi*eta*dfun(eta)^2)
-
   require(gnm)
   require(ordinal)
   method <- match.arg(method)
@@ -121,7 +125,13 @@ bpolr <- function(formula,
   pV <- ncol(VV)
   inds <- sapply(1:NcovClass,
                  function(i) (1 + (i - 1)*q):(i*q))
-  mitre <- diag(q) - cbind(0, rbind(diag(q - 1), 0))
+  if (q > 1) {
+    mitre <- diag(q) - cbind(0, rbind(diag(q - 1), 0))
+  }
+  else {
+    dim(inds) <- c(1, 2)
+    mitre <- as.matrix(1)
+  }
   ### Write etasExpr
   if (pV > 0) {
     colnames(VV) <- paste("scale", colnames(VV), sep = ".")
@@ -143,8 +153,8 @@ bpolr <- function(formula,
     FisherInfo <- 0
     Z <- eval(Zexpr)
     for (i in 1:NcovClass) {
-      Zr <- Z[inds[,i],]
-      invCovr <- 1/prob[nlev, i] + diag(1/prob[1:q, i])
+      Zr <- Z[inds[,i], , drop = FALSE]
+      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
       Dr <- mitre * gs[, i]
       Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
       FisherInfo <- FisherInfo + t(Zr)%*%Wr%*%Zr
@@ -159,8 +169,8 @@ bpolr <- function(formula,
     FisherInfo <- 0
     Z <- eval(Zexpr)
     for (i in 1:NcovClass) {
-      Zr <- Z[inds[,i],]
-      invCovr <- 1/prob[nlev, i] + diag(1/prob[1:q, i])
+      Zr <- Z[inds[,i], , drop = FALSE]
+      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
       Dr <- mitre * gs[, i]
       Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
       FisherInfo <- FisherInfo + t(Zr)%*%Wr%*%Zr
@@ -179,7 +189,7 @@ bpolr <- function(formula,
     cc <- matrix(0, nrow(prob), ncol(prob))
     for (i in 1:NcovClass) {
       etar <- etas[, i]
-      Zr <- Z[inds[,i],]
+      Zr <- Z[inds[,i], , drop = FALSE]
       Ar <- Zr%*%invExpInfo%*%t(Zr)
       cr <- 0.5*totals[i]*diag(Ar)*ddfun(etar)
       cc[, i] <- c(cr[1], diff(cr), -cr[q])
@@ -201,10 +211,10 @@ bpolr <- function(formula,
     cc <- matrix(0, nrow(prob), ncol(prob))
     for (i in 1:NcovClass) {
       etar <- etas[, i]
-      invCovr <- 1/prob[nlev, i] + diag(1/prob[1:q, i])
+      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
       Dr <- mitre * gs[, i]
       Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
-      Zr <- Z[inds[, i],]
+      Zr <- Z[inds[, i], , drop = FALSE]
       vr <- VV[inds[1, i], ]
       xr <- XX[inds[1, i], ]
       Ar <- Zr%*%invExpInfo%*%t(Zr)
@@ -301,7 +311,8 @@ bpolr <- function(formula,
     etheta <- exp(theta)
     mat <- matrix(0, q, q)
     mat[, 1L] <- rep(1, q)
-    for (i in 2L:q) mat[i:q, i] <- etheta[i]
+    if (q > 1)
+      for (i in 2L:q) mat[i:q, i] <- etheta[i]
     J <- diag(pX + q + pV)
     J[pX + 1:q, pX + 1:q] <- mat
     J
@@ -329,10 +340,15 @@ bpolr <- function(formula,
     biasPars <- bias(parsOR)
     biasAlpha <- biasPars[pX + 1:q]
     invFaa <- invFisherInfo[pX + 1:q, pX + 1:q]
-    ttt <- sapply(2:q, function(i)
-                  sum(c(-1, 1, 1, -1)*c(invFaa[(i-1):i, (i-1):i])))
-    biasPars[pX + 1:q] <- c(biasAlpha[1],
-                            diff(biasAlpha)/diff(alpha) + 0.5*ttt/diff(alpha)^2)
+    if (q == 1) {
+      biasPars[pX + 1] <- biasAlpha[1]
+    }
+    else {
+      ttt <- sapply(2:q, function(i)
+                    sum(c(-1, 1, 1, -1)*c(invFaa[(i-1):i, (i-1):i])))
+      biasPars[pX + 1:q] <- c(biasAlpha[1],
+                              diff(biasAlpha)/diff(alpha) + 0.5*ttt/diff(alpha)^2)
+    }
     biasPars
   }
   if (reparam) {
@@ -416,6 +432,7 @@ bpolr <- function(formula,
   if (infEsts) {
     warning("Either some of the maximum likelihood estimates are on the boundary  \n of the parameter space or better starting values need to be supplied", call. = FALSE)
     object$adjustedScores <- rep(NA, pX + q + pV)
+#    object$adjustedScores <- grad
     if (method == "ML") object$firstOrderBias <- rep(NA, pX + q + pV)
   }
   else {
