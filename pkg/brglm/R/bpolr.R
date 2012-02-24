@@ -1,6 +1,7 @@
 ### Problems with subset
 bpolr <- function(formula,
                   scale,
+                  nominal,
                   data,
                   weights,
                   start = NULL,
@@ -113,6 +114,7 @@ bpolr <- function(formula,
   .polr <- col(matrix(0, nrow(XX), q)) == rep(1:q, N/nlev)
   colnames(.polr) <- paste(lev[-nlev], lev[-1L], sep = "|")
   Xlin <- cbind(-XX, .polr)
+  # ADD NOMINAL SUPPORT
   VV <- V[-seq(nlev, N, nlev), -1, drop = FALSE]
   ## Set up offsets
   offsetL <- model.offset(MLocation)
