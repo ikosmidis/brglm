@@ -54,11 +54,17 @@ bpolr <- function(formula,
   M$start <- M$method <- M$link <- M$model <- M$maxit <- M$epsilon <-
     M$keepHistory <- M$trace <- M$slowIt <- M$reparam <- M$... <- NULL
   M[[1L]] <- as.name("model.frame")
-  MScale <- MLocation <- Mdata <- M
-  MScale$formula <- MLocation$scale <- Mdata$scale <- Mdata$formula <-NULL
+  MScale <- MLocation <- Mdata <- MNominal <- M
+  MScale$formula <- MScale$nominal <-
+      MLocation$scale <- MLocation$nominal <-
+          Mdata$scale <- Mdata$formula <- Mdata$nominal <-
+              MNominal$formula <- MNominal$scale <- NULL
   names(MScale)[names(MScale) == "scale"] <- "formula"
+  names(MNominal)[names(MNominal) == "nominal"] <- "formula"
   respNam <- as.character(MLocation$formula[[2]])
-  vars <- unique(c(all.vars(MLocation$formula), all.vars(MScale$formula)))
+  vars <- unique(c(all.vars(MLocation$formula),
+                   all.vars(MScale$formula),
+                   all.vars(MNominal$formula)))
   vars <- vars[vars!=respNam]
   ## Take care of intercept only models
   if (length(vars)) {
@@ -84,17 +90,20 @@ bpolr <- function(formula,
   .dat <- groupDat(.dat[, inds], respNam, "(weights)")
   .dat <- .dat[nam]
   attr(.dat, "terms") <- termsMdata
-  MScale$data <- MLocation$data <- as.name(".dat")
+  MScale$data <- MLocation$data <- MNominal$data <- as.name(".dat")
   if (missing(scale)) MScale$formula <- ~ -1
+  if (missing(nominal)) MNominal$formula <- ~ -1
   # A clm call for starting values later; used only if start is not specified
   Mclm <- M
   #  names(Mclm)[names(Mclm) == "location"] <- "formula"
-  MLocation$subset <- MScale$subset <- NULL
+  MLocation$subset <- MScale$subset <- MNominal$subset <- NULL
   #
   MLocation <- eval(MLocation)
   MScale <- eval(MScale)
+  MNominal <- eval(MNominal)
   TermsL <- attr(MLocation, "terms")
   TermsS <- attr(MScale, "terms")
+  TermsN <- attr(MNominal, "terms")
   # Useful integers
   nlev <- nlevels(model.response(MLocation))
   lev <- levels(model.response(MLocation))
@@ -110,9 +119,23 @@ bpolr <- function(formula,
   ## Set up model matrices
   X <- model.matrix(TermsL, MLocation)
   V <- model.matrix(TermsS, MScale)
+  NN <- model.matrix(TermsN, MNominal)
   XX <- X[-seq(nlev, N, nlev), -1, drop = FALSE]
   .polr <- col(matrix(0, nrow(XX), q)) == rep(1:q, N/nlev)
-  colnames(.polr) <- paste(lev[-nlev], lev[-1L], sep = "|")
+  colnames(.polr) <- .polrNam <- paste(lev[-nlev], lev[-1L], sep = "|")
+  ## Construct the nominal effects
+  NN <- NN[-seq(nlev, N, nlev), -1, drop = FALSE]
+  pN <- ncol(NN)
+  nominalNames <- colnames(NN)
+  NNew <- NULL
+  if (pN > 0) {
+      for (i in 1:pN) {
+          Newmat <- NN[, i]*.polr
+          colnames(Newmat) <- paste(.polrNam, nominalNames[i], sep = ".")
+          NNew <- cbind(NNew, Newmat)
+      }
+  }
+  XX <- cbind(XX, -NNew)
   Xlin <- cbind(-XX, .polr)
   # ADD NOMINAL SUPPORT
   VV <- V[-seq(nlev, N, nlev), -1, drop = FALSE]
@@ -251,7 +274,8 @@ bpolr <- function(formula,
     clmObject <- eval(Mclm)
     ## options(warn = 0)
     ## zeta is what is called tau here
-    pars <- c(clmObject$beta, clmObject$alpha, clmObject$zeta)
+    pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
+              clmObject$alpha[1:q], clmObject$zeta)
   }
   else {
       if (is.null(start)) {
@@ -271,7 +295,8 @@ bpolr <- function(formula,
           clmObject <- eval(Mclm)
           options(warn = 0)
           ## zeta is what is called tau here
-          pars <- c(clmObject$beta, clmObject$alpha, clmObject$zeta)
+          pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
+                    clmObject$alpha[1:q], clmObject$zeta)
       }
       else {
           if (missing(scale)) {
