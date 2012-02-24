@@ -1,8 +1,4 @@
-
-
-
 ### Problems with subset
-
 bpolr <- function(formula,
                   scale,
                   data,
@@ -63,10 +59,17 @@ bpolr <- function(formula,
   respNam <- as.character(MLocation$formula[[2]])
   vars <- unique(c(all.vars(MLocation$formula), all.vars(MScale$formula)))
   vars <- vars[vars!=respNam]
-  ff <- as.formula(paste(respNam, "~", paste(vars, collapse = " + ")))
+  ## Take care of intercept only models
+  if (length(vars)) {
+      ff <- as.formula(paste(respNam, "~", paste(vars, collapse = " + ")))
+  }
+  else
+      ff <- as.formula(paste(respNam, "~ 1"))
   environment(ff) <- environment(formula)
   Mdata$formula <- ff
   .dat <- eval(Mdata)
+  ## hack for intercept only models
+  ##.dat$x <- c(1,1,1)
   termsMdata <- attr(.dat, "terms")
   nam <- names(.dat)
   if (!("(weights)"%in%nam)) {
@@ -84,7 +87,7 @@ bpolr <- function(formula,
   if (missing(scale)) MScale$formula <- ~ -1
   # A clm call for starting values later; used only if start is not specified
   Mclm <- M
-#  names(Mclm)[names(Mclm) == "location"] <- "formula"
+  #  names(Mclm)[names(Mclm) == "location"] <- "formula"
   MLocation$subset <- MScale$subset <- NULL
   #
   MLocation <- eval(MLocation)
