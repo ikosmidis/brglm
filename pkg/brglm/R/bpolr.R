@@ -135,7 +135,7 @@ bpolr <- function(formula,
           NNew <- cbind(NNew, Newmat)
       }
   }
-  XX <- cbind(XX, -NNew)
+  XX <- cbind(XX, if (pN > 0) -NNew else NULL)
   Xlin <- cbind(-XX, .polr)
   # ADD NOMINAL SUPPORT
   VV <- V[-seq(nlev, N, nlev), -1, drop = FALSE]
@@ -643,6 +643,15 @@ print.bpolr <- function (x, scoreDigits = 2, ...)
         cat("Warning: did not converge as iteration limit reached\n")
     invisible(x)
 }
+
+coef.bpolr <- function(object, ...) {
+    c(object$beta, object$alpha, object$ta)
+}
+
+coefficients.bpolr <- function(object, ...) {
+    coef(object, ...)
+}
+
 
 summary.bpolr <-
 function (object, digits = max(3, .Options$digits - 3), correlation = FALSE,
