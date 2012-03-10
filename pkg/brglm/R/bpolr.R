@@ -83,7 +83,7 @@ bpolr <- function(formula,
     .dat[["(weights)"]] <- rep(1, nrow(.dat))
     nam <- c(nam, "(weights)")
   }
-  MScale$weights <- MLocation$weights <- as.name("(weights)")
+  MScale$weights <- MLocation$weights <- MNominal$weights <- as.name("(weights)")
   .dat <- expandCategorical(.dat, respNam, group = FALSE)
   .dat[["(weights)"]] <- c(.dat[["(weights)"]] * .dat[["count"]])
   inds <- match(c(nam[-1], nam[1]), names(.dat))
