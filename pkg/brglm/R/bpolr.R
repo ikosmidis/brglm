@@ -76,7 +76,7 @@ bpolr <- function(formula,
   Mdata$formula <- ff
   .dat <- eval(Mdata)
   ## hack for intercept only models
-  ##.dat$x <- c(1,1,1)
+  ### .dat$x <- c(1,1,1)
   termsMdata <- attr(.dat, "terms")
   nam <- names(.dat)
   if (!("(weights)"%in%nam)) {
@@ -157,7 +157,7 @@ bpolr <- function(formula,
     mitre <- diag(q) - cbind(0, rbind(diag(q - 1), 0))
   }
   else {
-    dim(inds) <- c(1, 2)
+    dim(inds) <- c(1, NcovClass)
     mitre <- as.matrix(1)
   }
   ### Write etasExpr
