@@ -76,7 +76,7 @@ bpolr <- function(formula,
   Mdata$formula <- ff
   .dat <- eval(Mdata)
   ## hack for intercept only models
-  ### .dat$x <- c(1,1,1)
+  ## .dat$x <- c(1,1,1)
   termsMdata <- attr(.dat, "terms")
   nam <- names(.dat)
   if (!("(weights)"%in%nam)) {
@@ -260,22 +260,28 @@ bpolr <- function(formula,
     maxit <- slowIt <- 1
     BC <- TRUE
     method <- "BR"
-    www <- .dat[["(weights)"]]
-    Mclm[[1L]] <- as.name("clm")
-    Mclm$link <- as.name("link")
-    Mclm$weights <-as.name("www")
-    Mclm$maxIter <- 100
-    datS <- .dat
-    datS$www <- www
-    datS$iii <- www > 0
-    Mclm$data <- as.name("datS")
-    Mclm$subset <- as.name("iii")
-    ## options(warn = -1)
-    clmObject <- eval(Mclm)
-    ## options(warn = 0)
-    ## zeta is what is called tau here
-    pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
-              clmObject$alpha[1:q], clmObject$zeta)
+    tempCall <- match.call()
+    tempCall$method <- "ML"
+    tempObj <- eval(tempCall)
+    pars <- c(tempObj$beta, tempObj$alpha, tempObj$tau)
+    ### Dropped dependence on clm for the MLE here
+    ## browser()
+    ## www <- .dat[["(weights)"]]
+    ## Mclm[[1L]] <- as.name("clm")
+    ## Mclm$link <- as.name("link")
+    ## Mclm$weights <-as.name("www")
+    ## Mclm$maxIter <- 100
+    ## datS <- .dat
+    ## datS$www <- www
+    ## datS$iii <- www > 0
+    ## Mclm$data <- as.name("datS")
+    ## Mclm$subset <- as.name("iii")
+    ## ## options(warn = -1)
+    ## clmObject <- eval(Mclm)
+    ## ## options(warn = 0)
+    ## ## zeta is what is called tau here
+    ## pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
+    ##           clmObject$alpha[1:q], clmObject$zeta)
   }
   else {
       if (is.null(start)) {
