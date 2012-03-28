@@ -31,20 +31,10 @@ bpolr <- function(formula,
                  probit = make.link("probit")$mu.eta,
                  cloglog = make.link("cloglog")$mu.eta,
                  cauchit = make.link("cauchit")$mu.eta)
-  pfun <- switch(link,
-                 logit = make.link("logit")$linkinv,
-                 probit = make.link("probit")$linkinv,
-                 cloglog = make.link("cloglog")$linkinv,
-                 cauchit = make.link("cauchit")$linkinv)
-  dfun <- switch(link,
-                 logit = dlogis,
-                 probit = dnorm,
-                 cloglog = dgumbel2,
-                 cauchit = make.link("cauchit")$mu.eta)
   ddfun <- switch(link,
                   logit = function(eta) dfun(eta)*(1 - 2*pfun(eta)),
                   probit = function(eta) -eta*dfun(eta),
-                  cloglog = function(eta) dfun(eta)*(1 + log(1 - pfun(eta))),
+                  cloglog = function(eta) dfun(eta)*(1 - exp(eta)),
                   cauchit = function(eta) -2*pi*eta*dfun(eta)^2)
   require(gnm)
   require(ordinal)
