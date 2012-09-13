@@ -1,4 +1,6 @@
-### Problems with subset
+### Clean up calls to names
+
+### Problems with subset, problems with expressions for the response
 bpolr <- function(formula,
                   scale,
                   nominal,
@@ -12,11 +14,9 @@ bpolr <- function(formula,
                   link = c("logit", "probit", "cloglog", "cauchit"),
                   method = c("ML", "BR", "BC"),
                   maxit = 100,
-                  epsilon = 1e-10,
-                  keepHistory = TRUE,
+                  epsilon = 1e-06,
+                  history = TRUE,
                   trace = FALSE,
-                  slowIt = 1,
-                  reparam = FALSE,
                   ...) {
   M  <- match.call(expand.dots = FALSE)
   if (missing(formula)) stop("A specification of location is absent")
@@ -42,7 +42,7 @@ bpolr <- function(formula,
   if (is.matrix(eval.parent(M$data)))
     M$data <- as.data.frame(data)
   M$start <- M$method <- M$link <- M$model <- M$maxit <- M$epsilon <-
-    M$keepHistory <- M$trace <- M$slowIt <- M$reparam <- M$... <- NULL
+    M$history <- M$trace <- M$... <- NULL
   M[[1L]] <- as.name("model.frame")
   MScale <- MLocation <- Mdata <- MNominal <- M
   MScale$formula <- MScale$nominal <-
@@ -56,6 +56,7 @@ bpolr <- function(formula,
                    all.vars(MScale$formula),
                    all.vars(MNominal$formula)))
   vars <- vars[vars!=respNam]
+
   ## Take care of intercept only models
   if (length(vars)) {
       ff <- as.formula(paste(respNam, "~", paste(vars, collapse = " + ")))
@@ -65,6 +66,7 @@ bpolr <- function(formula,
   environment(ff) <- environment(formula)
   Mdata$formula <- ff
   .dat <- eval(Mdata)
+
   ## hack for intercept only models
   ## .dat$x <- c(1,1,1)
   termsMdata <- attr(.dat, "terms")
@@ -83,18 +85,19 @@ bpolr <- function(formula,
   MScale$data <- MLocation$data <- MNominal$data <- as.name(".dat")
   if (missing(scale)) MScale$formula <- ~ -1
   if (missing(nominal)) MNominal$formula <- ~ -1
-  # A clm call for starting values later; used only if start is not specified
+
+  ## A clm call for starting values later; used only if start is not specified
   Mclm <- M
-  #  names(Mclm)[names(Mclm) == "location"] <- "formula"
+
   MLocation$subset <- MScale$subset <- MNominal$subset <- NULL
-  #
   MLocation <- eval(MLocation)
   MScale <- eval(MScale)
   MNominal <- eval(MNominal)
   TermsL <- attr(MLocation, "terms")
   TermsS <- attr(MScale, "terms")
   TermsN <- attr(MNominal, "terms")
-  # Useful integers
+
+  ## Useful integers
   nlev <- nlevels(model.response(MLocation))
   lev <- levels(model.response(MLocation))
   q <- nlev - 1
@@ -103,9 +106,11 @@ bpolr <- function(formula,
   Nobs <- NcovClass*q
   rownames(.dat) <- paste(rep(1:NcovClass, each = nlev),
                           rep(1:nlev, times = NcovClass), sep = ".")
+
   ## Frequencies and totals
   freqs <- matrix(.dat[["(weights)"]], nrow = nlev)
   totals <- colSums(freqs)
+
   ## Set up model matrices
   X <- model.matrix(TermsL, MLocation)
   V <- model.matrix(TermsS, MScale)
@@ -113,6 +118,7 @@ bpolr <- function(formula,
   XX <- X[-seq(nlev, N, nlev), -1, drop = FALSE]
   .polr <- col(matrix(0, nrow(XX), q)) == rep(1:q, N/nlev)
   colnames(.polr) <- .polrNam <- paste(lev[-nlev], lev[-1L], sep = "|")
+
   ## Construct the nominal effects
   NN <- NN[-seq(nlev, N, nlev), -1, drop = FALSE]
   pN <- ncol(NN)
@@ -127,22 +133,29 @@ bpolr <- function(formula,
   }
   XX <- cbind(XX, if (pN > 0) -NNew else NULL)
   Xlin <- cbind(-XX, .polr)
-  # ADD NOMINAL SUPPORT
   VV <- V[-seq(nlev, N, nlev), -1, drop = FALSE]
+
   ## Set up offsets
   offsetL <- model.offset(MLocation)
   offsetS <- model.offset(MScale)
   if (is.null(offsetL)) offsetL <- rep(0, N)
   if (is.null(offsetS)) offsetS <- rep(0, N)
+
   ## offsetL will be substracted
   ## offsetV will be added
   offsetL <- offsetL[-seq(nlev, N, nlev)]
   offsetS <- offsetS[-seq(nlev, N, nlev)]
-  # More useful integers
+
+  ## More useful integers
   pX <- ncol(XX)
   pV <- ncol(VV)
+
+  if (pV > 0) {
+    colnames(VV) <- paste("scale", colnames(VV), sep = ".")
+  }
   inds <- sapply(1:NcovClass,
                  function(i) (1 + (i - 1)*q):(i*q))
+
   if (q > 1) {
     mitre <- diag(q) - cbind(0, rbind(diag(q - 1), 0))
   }
@@ -150,371 +163,231 @@ bpolr <- function(formula,
     dim(inds) <- c(1, NcovClass)
     mitre <- as.matrix(1)
   }
-  ### Write etasExpr
-  if (pV > 0) {
-    colnames(VV) <- paste("scale", colnames(VV), sep = ".")
-    etasExpr <- expression(matrix(c(drop(Xlin%*%pars[1:(pX + q)]) - offsetL)/
-        exp(drop(VV%*%pars[pX + q + 1:pV] + offsetS)), nrow = q))
-    Zexpr <- expression(cbind(Xlin/exp(drop(VV%*%pars[pX + q + 1:pV])),
-        -VV*c(etas)))
-  }
-  else {
-    etasExpr <- expression(matrix(c(drop(Xlin%*%pars[1:(pX + q)]) - offsetL),
-        nrow = q))
-    Zexpr <- expression(Xlin)
-  }
-  expInfo <- function(pars) {
-    etas <- eval(etasExpr)
+
+  fitFun <- function(pars, deriv = 1L) {
+    beta <- pars[seq.int(length.out = pX)]
+    alpha <- pars[seq.int(length.out = q) + pX]
+    tau <- pars[seq.int(length.out = pV) + q + pX]
+    etas <- matrix(c(drop(Xlin %*% c(beta, alpha)) - offsetL)/
+                   exp(drop(VV %*% tau + offsetS)), nrow = q)
+    Z <- cbind(Xlin/exp(drop(VV %*% tau)), if (pV > 0) -VV*c(etas) else NULL)
     cumprob <- pfun(etas)
     gs <- dfun(etas)
     prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
-    FisherInfo <- 0
-    Z <- eval(Zexpr)
-    for (i in 1:NcovClass) {
-      Zr <- Z[inds[,i], , drop = FALSE]
-      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
-      Dr <- mitre * gs[, i]
-      Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
-      FisherInfo <- FisherInfo + t(Zr)%*%Wr%*%Zr
-    }
-    FisherInfo
+    ggs <- if (deriv >= 1L) ggs <- ddfun(etas) else NULL
+    list(Z = Z, etas = etas, prob = prob, gs = gs, ggs = ggs,
+         beta = beta, alpha = alpha, tau = tau)
   }
-  ders <- function(pars) {
-    etas <- eval(etasExpr)
-    cumprob <- pfun(etas)
-    gs <- dfun(etas)
-    prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
-    FisherInfo <- 0
-    Z <- eval(Zexpr)
-    for (i in 1:NcovClass) {
-      Zr <- Z[inds[,i], , drop = FALSE]
-      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
-      Dr <- mitre * gs[, i]
-      Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
-      FisherInfo <- FisherInfo + t(Zr)%*%Wr%*%Zr
-    }
-    list(scores = -colSums(c(gs*apply(freqs/prob, 2, diff))*Z),
-         expInfo = FisherInfo)
-  }
-  # Need adjustment for dispersion pars
-  adjustment <- function(pars) {
-    etas <- eval(etasExpr)
-    cumprob <- pfun(etas)
-    gs <- dfun(etas)
-    prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
-    Z <- eval(Zexpr)
-    invExpInfo <- solve(expInfo(pars))
-    cc <- matrix(0, nrow(prob), ncol(prob))
-    for (i in 1:NcovClass) {
-      etar <- etas[, i]
-      Zr <- Z[inds[,i], , drop = FALSE]
-      Ar <- Zr%*%invExpInfo%*%t(Zr)
-      cr <- 0.5*totals[i]*diag(Ar)*ddfun(etar)
-      cc[, i] <- c(cr[1], diff(cr), -cr[q])
-    }
-    -colSums(c(gs*apply(cc/prob, 2, diff))*Z)
-  }
-  adjustmentDisp <- function(pars) {
-    etas <- eval(etasExpr)
-    cumprob <- pfun(etas)
-    gs <- dfun(etas)
-    prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
-    Z <- eval(Zexpr)
-    invExpInfo <- solve(expInfo(pars))
-    invFtt <- invExpInfo[pX + q + 1:pV, pX + q + 1:pV]
-    invFat <- invExpInfo[pX + 1:q, pX + q + 1:pV]
-    invFbt <- invExpInfo[1:pX, pX + q + 1:pV]
-    taus <- pars[q + pX + 1:pV]
-    adj <- adj1 <- adj2 <- 0
-    cc <- matrix(0, nrow(prob), ncol(prob))
-    for (i in 1:NcovClass) {
-      etar <- etas[, i]
-      invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
-      Dr <- mitre * gs[, i]
-      Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
-      Zr <- Z[inds[, i], , drop = FALSE]
-      vr <- VV[inds[1, i], ]
-      xr <- XX[inds[1, i], ]
-      Ar <- Zr%*%invExpInfo%*%t(Zr)
-      cr <- 0.5*totals[i]*diag(Ar)*ddfun(etar)
-      cc[, i] <- c(cr[1], diff(cr), -cr[q])
-      adj <- adj + 0.5*(vr%*%invFtt%*%vr) * c(Wr%*%etar)*Zr -
-        exp(-sum(taus*vr))*c(Wr%*%invFat%*%vr -
-                             if (pX > 0) xr%*%invFbt%*%vr * rowSums(Wr)
-                             else 0)*Zr
-    }
-    colSums(adj) - colSums(c(gs*apply(cc/prob, 2, diff))*Z)
-  }
-  BC <- FALSE
-  if (method == "BC") {
-    maxit <- slowIt <- 1
-    BC <- TRUE
-    method <- "BR"
-    tempCall <- match.call()
-    tempCall$method <- "ML"
-    tempObj <- eval(tempCall)
-    pars <- c(tempObj$beta, tempObj$alpha, tempObj$tau)
-    ### Dropped dependence on clm for the MLE here
-    ## browser()
-    ## www <- .dat[["(weights)"]]
-    ## Mclm[[1L]] <- as.name("clm")
-    ## Mclm$link <- as.name("link")
-    ## Mclm$weights <-as.name("www")
-    ## Mclm$maxIter <- 100
-    ## datS <- .dat
-    ## datS$www <- www
-    ## datS$iii <- www > 0
-    ## Mclm$data <- as.name("datS")
-    ## Mclm$subset <- as.name("iii")
-    ## ## options(warn = -1)
-    ## clmObject <- eval(Mclm)
-    ## ## options(warn = 0)
-    ## ## zeta is what is called tau here
-    ## pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
-    ##           clmObject$alpha[1:q], clmObject$zeta)
-  }
-  else {
-      if (is.null(start)) {
-          ## Starting values
-          ## Add something small to zero weights to avoid the
-          ## possibility of boundary estimates
-          www <- .dat[["(weights)"]]
-          www[www == 0] <- 0.5*(pX + q + pV)/sum(www)
-          Mclm[[1L]] <- as.name("clm")
-          Mclm$link <- as.name("link")
-          Mclm$weights <-as.name("www")
-          Mclm$maxIter <- 2
-          datS <- .dat
-          datS$www <- www
-          Mclm$data <- as.name("datS")
-          options(warn = -1)
-          clmObject <- eval(Mclm)
-          options(warn = 0)
-          ## zeta is what is called tau here
-          pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
-                    clmObject$alpha[1:q], clmObject$zeta)
+
+  infoFun <- function(pars, fit = fitFun(pars), inverse = FALSE) {
+    with(fit, {
+      FisherInfo <- 0
+      for (i in 1:NcovClass) {
+        Zr <- Z[inds[,i], , drop = FALSE]
+        ## CAN YOU AVOID THE IF BELOW?
+        invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
+        Dr <- mitre * gs[, i]
+        Wr <- totals[i] * Dr %*% invCovr %*% t(Dr)
+        FisherInfo <- FisherInfo + t(Zr) %*% Wr %*% Zr
       }
-      else {
-          if (missing(scale)) {
-              if (length(start)!=(pX + q))
-                  stop("'start' is not of the correct length", call. = FALSE)
-          }
-          else {
-              if (length(start)!=(pX + pV + q))
-                  stop("'start' is not of the correct length", call. = FALSE)
-          }
-          pars <- start
-      }
+      if (inverse) try(solve(FisherInfo), silent = TRUE) else FisherInfo
+    })
   }
-  niter <- 0
-  historyEsts <- pars
-  infEsts <- FALSE
-  if (missing(scale)) {
-    bias <- function(pars) {
-      -solve(expInfo(pars))%*%adjustment(pars)
-    }
+
+  gradFun <- function(pars, fit = fitFun(pars)) {
+    with(fit, -colSums(c(gs * apply(freqs/prob, 2, diff)) * Z))
   }
-  else {
-    bias <- function(pars) {
-      -solve(expInfo(pars))%*%adjustmentDisp(pars)
-    }
-  }
-  if (method == "BR") {
-    if (missing(scale)) {
-      gradExpr <- expression(curDers$scores + adjustment(pars))
+
+  biasFun <- function(pars,
+                   fit = fitFun(pars, deriv = 2L),
+                   vcov = infoFun(pars, fit = fit, inverse = TRUE)) {
+    if (inherits(vcov, "try-error")) {
+      list(bias = rep(NA_real_, pX + q + pV),
+           adjustment = rep(NA_real_, pX + q + pV))
     }
     else {
-      gradExpr <- expression(curDers$scores + adjustmentDisp(pars))
-    }
-  }
-  else {
-    gradExpr <- expression(curDers$scores)
-  }
-  ### Pars is in beta, alpha, tau
-  ### Pars1 is in beta, theta, tau
-  JacAlphaTheta <- function(pars1) {
-    theta <- pars1[pX + 1:q]
-    etheta <- exp(theta)
-    mat <- matrix(0, q, q)
-    mat[, 1L] <- rep(1, q)
-    if (q > 1)
-      for (i in 2L:q) mat[i:q, i] <- etheta[i]
-    J <- diag(pX + q + pV)
-    J[pX + 1:q, pX + 1:q] <- mat
-    J
-  }
-  dersTheta <- function(pars1) {
-    theta <- pars1[pX + 1:q]
-    alpha <- cumsum(c(theta[1], exp(theta[-1])))
-    parsOR <- pars1
-    parsOR[pX + 1:q] <- alpha
-    dersOR <- ders(parsOR)
-    A <- JacAlphaTheta(pars1)
-    scoresTheta <- dersOR$scores%*%A
-    infoTheta <- t(A)%*%dersOR$expInfo%*%A
-    list(scores = structure(c(dersOR$scores%*%A),
-           names = names(dersOR$scores)),
-         expInfo = structure(t(A)%*%dersOR$expInfo%*%A,
-           dimnames = dimnames(dersOR$expInfo)))
-  }
-  biasTheta <- function(pars1) {
-    theta <- pars1[pX + 1:q]
-    alpha <- cumsum(c(theta[1], exp(theta[-1])))
-    parsOR <- pars1
-    parsOR[pX + 1:q] <- alpha
-    invFisherInfo <- solve(expInfo(parsOR))
-    biasPars <- bias(parsOR)
-    biasAlpha <- biasPars[pX + 1:q]
-    invFaa <- invFisherInfo[pX + 1:q, pX + 1:q]
-    if (q == 1) {
-      biasPars[pX + 1] <- biasAlpha[1]
-    }
-    else {
-      ttt <- sapply(2:q, function(i)
-                    sum(c(-1, 1, 1, -1)*c(invFaa[(i-1):i, (i-1):i])))
-      biasPars[pX + 1:q] <- c(biasAlpha[1],
-                              diff(biasAlpha)/diff(alpha) + 0.5*ttt/diff(alpha)^2)
-    }
-    biasPars
-  }
-  if (reparam) {
-    pars1 <- pars
-    alpha <- pars[pX + 1:q]
-    theta <- c(alpha[1], log(diff(alpha)))
-    pars1[pX + 1:q] <- theta
-    while (niter < maxit) {
-      curDers <- dersTheta(pars1)
-      curInfo <- curDers$expInfo
-      invCurInfo <- try(solve(curInfo), silent = TRUE)
-      if (inherits(invCurInfo, "try-error")) {
-        infEsts <- TRUE
-        break
-      }
-      niter <- niter + 1
-      grad <- curDers$scores - if (method == "BR") curInfo%*%biasTheta(pars1) else 0
-      if (trace) {
-        cat("===========================\n")
-        cat("Inverse condition number:", 1/kappa(curInfo, exact = TRUE), "\n")
-        cat("Scores:\n", format(grad, scientific = TRUE), "\n")
-        cat("===========================\n")
-        browser()
-      }
-      pars1 <- pars1 + slowIt*invCurInfo%*%grad
-      if (keepHistory) historyEsts <- cbind(historyEsts, pars1)
-      if (all(abs(grad) < epsilon)) break
-    }
-    pars <- pars1
-    theta <- pars1[pX + 1:q]
-    alpha <- cumsum(c(theta[1], exp(theta[-1])))
-    pars[pX + 1:q] <- alpha
-  }
-  else {
-  ### A quasi Fisher scoring iteration
-    while (niter < maxit) {
-      curDers <- ders(pars)
-      curInfo <- curDers$expInfo
-      invCurInfo <- try(solve(curInfo), silent = TRUE)
-      if (inherits(invCurInfo, "try-error")) {
-        infEsts <- TRUE
-        break
-      }
-      niter <- niter + 1
-      grad <- eval(gradExpr)
-      if (trace) {
-        cat("===========================\n")
-        cat("Inverse condition number:", 1/kappa(curInfo, exact = TRUE), "\n")
-        cat("Scores:\n", format(grad, scientific = TRUE), "\n")
-        cat("===========================\n")
-        browser()
-      }
-      pars <- pars + slowIt*invCurInfo%*%grad
-      if (keepHistory) historyEsts <- cbind(historyEsts, pars)
-      if (all(abs(grad) < epsilon)) break
-    }
-  }
-  parNames <- rownames(pars)
-  pars <- c(pars)
-  names(pars) <- parNames
-  cumprob <- pfun(eval(etasExpr))
-  prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
-  curDers <- ders(pars)
-  object <- NULL
-  if (pX!=0) {
-    object$beta <- pars[1:pX]
-    object$alpha <- pars[pX + 1:q]
-  }
-  else {
-    object$alpha <- pars[1:q]
-  }
-  if (!missing(scale)) {
-    object$tau <- pars[pX + q + 1:pV]
-  }
-  object$expInfo <- curDers$expInfo
-  if (any(is.na(curDers$expInfo))) {
-    infEsts <- TRUE
-  }
-  dimnames(object$expInfo) <- list(parNames, parNames)
-  object$scores <- curDers$scores
-  if (infEsts) {
-    warning("Either some of the maximum likelihood estimates are on the boundary  \n of the parameter space or better starting values need to be supplied", call. = FALSE)
-    object$adjustedScores <- rep(NA, pX + q + pV)
-#    object$adjustedScores <- grad
-    if (method == "ML") object$firstOrderBias <- rep(NA, pX + q + pV)
-  }
-  else {
-    if (method == "BR") {
-      if (reparam) {
-        curDers <- dersTheta(pars1)
-        object$adjustedScores <- curDers$scores - curDers$expInfo%*%biasTheta(pars1)
-      }
-      else {
-        if (missing(scale)) {
-          object$adjustedScores <- curDers$scores + adjustment(pars)
+      adj <- 0
+      with(fit, {
+        cc <- matrix(0, nrow(prob), ncol(prob))
+        if (pV == 0) {
+          for (i in 1:NcovClass) {
+            Zr <- Z[inds[,i], , drop = FALSE]
+            Ar <- Zr %*% vcov %*% t(Zr)
+            cr <- 0.5 * totals[i] * diag(Ar) * ggs[, i]
+            cc[, i] <- c(cr[1], diff(cr), -cr[q])
+          }
         }
         else {
-          object$adjustedScores <- curDers$scores + adjustmentDisp(pars)
+          invFtt <- vcov[pX + q + 1:pV, pX + q + 1:pV]
+          invFat <- vcov[pX + 1:q, pX + q + 1:pV]
+          invFbt <- vcov[1:pX, pX + q + 1:pV]
+          taus <- pars[q + pX + 1:pV]
+          for (i in 1:NcovClass) {
+            Zr <- Z[inds[,i], , drop = FALSE]
+            Ar <- Zr %*% vcov %*% t(Zr)
+            cr <- 0.5 * totals[i] * diag(Ar) * ggs[, i]
+            cc[, i] <- c(cr[1], diff(cr), -cr[q])
+            etar <- etas[, i]
+            invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
+            Dr <- mitre * gs[, i]
+            Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
+            vr <- VV[inds[1, i], ]
+            xr <- XX[inds[1, i], ]
+            adj <- adj + 0.5 * (vr %*% invFtt %*% vr) * c(Wr %*% etar) * Zr -
+              exp(-sum(taus * vr)) * c( Wr %*% invFat %*% vr -
+                                   if (pX > 0)
+                                       xr %*% invFbt %*% vr * rowSums(Wr)
+                                   else 0)*Zr
+          }
+          adj <- colSums(adj)
         }
-      }
+        adjustment <- adj -colSums(c(gs * apply(cc/prob, 2, diff)) * Z)
+        bias <- -vcov %*% adjustment
+        list(bias = bias, adjustment = adjustment)
+      })
+    }
+  }
+
+  if (is.null(start)) {
+    ## Starting values
+    ## Add something small to zero weights to avoid the
+    ## possibility of boundary estimates
+    ### Hmmm... maybe get starting values using many binomial regressions?
+    www <- .dat[["(weights)"]]
+    www[www == 0] <- 0.5*(pX + q + pV)/sum(www)
+    Mclm[[1L]] <- as.name("clm")
+    Mclm$link <- as.name("link")
+    Mclm$weights <-as.name("www")
+    Mclm$maxIter <- 2
+    datS <- .dat
+    datS$www <- www
+    Mclm$data <- as.name("datS")
+    options(warn = -1)
+    clmObject <- eval(Mclm)
+    options(warn = 0)
+    ## zeta is what is called tau here
+    pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
+              clmObject$alpha[1:q], clmObject$zeta)
+  }
+  else {
+    if (missing(scale)) {
+      if (length(start)!=(pX + q))
+        stop("'start' is not of the correct length", call. = FALSE)
     }
     else {
-      # because first order biases do not make sense when method == "BR"
-      object$firstOrderBias <- bias(pars)
-      pars1 <- pars
-      alpha <- pars[pX + 1:q]
-      theta <- c(alpha[1], log(diff(alpha)))
-      pars1[pX + 1:q] <- theta
-      object$firstOrderBiasReparam <- biasTheta(pars1)
+      if (length(start)!=(pX + pV + q))
+        stop("'start' is not of the correct length", call. = FALSE)
+    }
+    pars <- start
+  }
+
+  step <- .Machine$integer.max
+  historyEstimates <- NULL
+  for (niter in 1:maxit) {
+    stepPrev <- step
+    stepFactor <- 0
+    testhalf <- TRUE
+    if (history) {
+      historyEstimates <- cbind(historyEstimates, pars)
+    }
+    while (testhalf & stepFactor < 11) {
+      fit <- fitFun(pars, deriv = 2L)
+      scores <- gradFun(pars, fit = fit)
+      infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
+      if (failedInv <- inherits(infoInv, "try-error")) {
+        warning("failed to invert the information matrix: iteration stopped prematurely")
+        break
+      }
+      if (method == "BR") {
+        biasObject <- biasFun(pars, fit = fit, vcov = infoInv)
+        bias <- biasObject$bias
+        adjustment <- biasObject$adjustment
+      }
+      else {
+        bias <- 0
+        adjustment <- 0
+      }
+      if (trace) {
+        cat("===========================\n")
+        cat("Iteration: ", niter, "\n")
+        cat("Inverse condition number:", 1/kappa(infoInv, exact = TRUE), "\n")
+        cat("Scores:\n", format(scores + adjustment, scientific = TRUE), "\n")
+        cat("===========================\n")
+      }
+      pars <- pars +
+        2^(-stepFactor) * (step <- infoInv %*% scores - bias)
+      stepFactor <- stepFactor + 1
+      testhalf <- drop(crossprod(stepPrev) < crossprod(step))
+    }
+    if (failedInv | (all(abs(step) < epsilon))) {
+      break
     }
   }
-  object$pars <- pars
-  object$call <- match.call()
-  object$dataReshaped <- .dat
-  object$fitted.values <- c(prob)
-  names(object$fitted.values) <- rownames(.dat)
-  object$deviance <- -2*sum(freqs*log(prob))
-  object$convergence <- as.numeric(((niter >= maxit)*!BC) || infEsts)
-  object$niter <- niter
-  if (!is.null(historyEsts) & !infEsts) {
-    colnames(historyEsts) <- c("Starting", paste("Iteration", 1:niter))
+
+  ## conduct single bias correction (if BC selected) else do not
+  ## estimate the first order biases
+  if (method == "BC") {
+    bias <- biasFun(pars)$bias
+    pars <- pars - bias
   }
-  object$history <- historyEsts
-  object$infiniteEstimates <- infEsts
-  object$method <- if (BC) "BC" else method
-  object$eta <- eval(etasExpr)
-  object$df.residual <- sum(freqs) - pX - q - pV
-  object$edf <- pX + q + pV
-  object$n <- sum(freqs)
-  object$nobs <- sum(freqs)
-  object$na.action <- attr(MLocation, "na.action")
-  object$xlevelsLocation <- .getXlevels(TermsL, MLocation)
-  object$reparam <- reparam
-  if (model)
-    object$model <- .dat
-  if (pV > 0)
-    object$xlevelsScale <- .getXlevels(TermsS, MScale)
-  object$contrasts <- attr(X, "contrasts")
-  class(object) <- c("bpolr", "polr")
-  object
+
+  fit <- fitFun(pars)
+  beta <- fit$beta
+  alpha <- fit$alpha
+  tau <- fit$tau
+  prob <- fit$prob
+  scores <- gradFun(pars, fit = fit)
+  infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
+  if (method == "BR") {
+    adjustedScores <- scores +
+      biasFun(pars, fit = fit, vcov = infoInv)$adjustment
+  }
+  else {
+    adjustedScores <- rep(NA_real_, pX + q + pV)
+  }
+  failedInv <- inherits(infoInv, "try-error")
+
+
+  if (history) {
+    colnames(historyEstimates) <- c("Starting",
+                                    paste("Iteration",
+                                          seq.int(length.out = niter- 1)))
+  }
+  names(beta) <- colnames(XX)
+  names(alpha) <- .polrNam
+  names(tau) <- colnames(VV)
+
+  if (any((prob < 0) | (prob > 1)))
+    warning("Inadmissible parameter values")
+
+  ## Return value
+  rval <- list(beta = beta,
+               alpha = alpha,
+               tau = tau,
+               scores = scores,
+               adjustedScores = adjustedScores,
+               vcov = infoInv,
+               call = match.call(),
+               dataReshaped = .dat,
+               fitted.values = structure(c(prob), .Names = rownames(.dat)),
+               deviance = -2 * sum(freqs[freqs != 0]*log(prob[freqs != 0])),
+               convergence = (niter < maxit) & !failedInv,
+               niter = niter,
+               history = historyEstimates,
+               boundaryEstimates = failedInv,
+               method = method,
+               eta = fit$eta,
+               df.residual = sum(freqs) - pX - q - pV,
+               edf = pX + q + pV,
+               n = sum(freqs),
+               nobs = sum(freqs), ## WHY?
+               na.action = attr(MLocation, "na.action"),
+               xlevelsLocation = .getXlevels(TermsL, MLocation),
+               model = if (model) .dat else NULL,
+               xlevelsScale = if (pV > 0) .getXlevels(TermsS, MScale) else NULL,
+               contrasts = attr(X, "contrasts"))
+  class(rval) <- c("bpolr", "polr")
+  rval
 }
 
 model.frame.bpolr <- function(formula, ...) {
@@ -558,7 +431,7 @@ model.frame.bpolr <- function(formula, ...) {
 
 ### Need print/summary methods that handle dispersion parameters
 vcov.bpolr <- function(object, ...) {
-  solve(object$expInfo)
+  object$vcov
 }
 
 
@@ -635,7 +508,7 @@ print.bpolr <- function (x, scoreDigits = 2, ...)
         "\n")
     if (nzchar(mess <- naprint(x$na.action)))
         cat("(", mess, ")\n", sep = "")
-    if (x$convergence > 0)
+    if (!x$convergence)
         cat("Warning: did not converge as iteration limit reached\n")
     invisible(x)
 }
@@ -661,6 +534,8 @@ function (object, digits = max(3, .Options$digits - 3), correlation = FALSE,
         c("Value", "Std. Error", "t value")))
     coef[, 1L] <- cc
     vc <- vcov(object)
+    if (inherits(vc, "try-error")) vc <- matrix(NA_real_, pc + q + pt,
+                                                pc + q + pt)
     coef[, 2L] <- sd <- sqrt(diag(vc))
     coef[, 3L] <- coef[, 1L]/coef[, 2L]
     object$coefficients <- coef
