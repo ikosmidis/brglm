@@ -298,6 +298,8 @@ bpolr <- function(formula,
         warning("failed to invert the information matrix: iteration stopped prematurely")
         break
       }
+      ## If invoInv cannot be inverted then the following is not evaluated
+      parsPrev <- pars
       if (method == "BR") {
         biasObject <- biasFun(pars, fit = fit, vcov = infoInv)
         bias <- biasObject$bias
@@ -309,8 +311,9 @@ bpolr <- function(formula,
       }
       if (trace) {
         cat("===========================\n")
-        cat("Iteration: ", niter, "\n")
-        cat("Inverse condition number:", 1/kappa(infoInv, exact = TRUE), "\n")
+        cat("Iteration: ", niter, "step factor", 2^(-stepFactor),  "\n")
+        cat("Inverse condition number:",
+            format(1/kappa(infoInv, exact = TRUE), nsmall = 5), "\n")
         cat("Scores:\n", format(scores + adjustment, scientific = TRUE), "\n")
         cat("===========================\n")
       }
@@ -324,11 +327,23 @@ bpolr <- function(formula,
     }
   }
 
+  ## ## If there was a failure in inverting the Fisher information then
+  ## ## use the last invertible version of it, else recalculate everything
+  ## if (failedInv) {
+  ##   pars <- parsPrev
+  ## }
+  # OR
+  ## Use always the last invertible version of the Fisher information
+  pars <- parsPrev
+
   ## conduct single bias correction (if BC selected) else do not
   ## estimate the first order biases
   if (method == "BC") {
     bias <- biasFun(pars)$bias
     pars <- pars - bias
+  }
+  else {
+    bias <- rep(NA_real_, pX + q + pV)
   }
 
   fit <- fitFun(pars)
@@ -338,14 +353,20 @@ bpolr <- function(formula,
   prob <- fit$prob
   scores <- gradFun(pars, fit = fit)
   infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
+
+  ## if method is BR then calcuate adjusted score functions else do
+  ## not estimate their value
   if (method == "BR") {
     adjustedScores <- scores +
       biasFun(pars, fit = fit, vcov = infoInv)$adjustment
   }
   else {
-    adjustedScores <- rep(NA_real_, pX + q + pV)
+     adjustedScores <- rep(NA_real_, pX + q + pV)
   }
-  failedInv <- inherits(infoInv, "try-error")
+
+  ## Just to cover the case where we revert back to the last value
+  ## where the Fisher information was invertible
+  failedInv <- failedInv | inherits(infoInv, "try-error")
 
 
   if (history) {
@@ -357,13 +378,13 @@ bpolr <- function(formula,
   names(alpha) <- .polrNam
   names(tau) <- colnames(VV)
 
-  if (any((prob < 0) | (prob > 1)))
-    warning("Inadmissible parameter values")
+  inadmissible <- any((prob < 0) | (prob > 1))
 
   ## Return value
   rval <- list(beta = beta,
                alpha = alpha,
                tau = tau,
+               bias = bias,
                scores = scores,
                adjustedScores = adjustedScores,
                vcov = infoInv,
@@ -375,6 +396,7 @@ bpolr <- function(formula,
                niter = niter,
                history = historyEstimates,
                boundaryEstimates = failedInv,
+               inadmissible = inadmissible,
                method = method,
                eta = fit$eta,
                df.residual = sum(freqs) - pX - q - pV,
@@ -510,6 +532,8 @@ print.bpolr <- function (x, scoreDigits = 2, ...)
         cat("(", mess, ")\n", sep = "")
     if (!x$convergence)
         cat("Warning: did not converge as iteration limit reached\n")
+    if (x$inadmissible)
+        cat("Warning: inadmissible parameter values\n")
     invisible(x)
 }
 
