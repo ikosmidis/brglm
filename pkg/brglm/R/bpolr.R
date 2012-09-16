@@ -1,5 +1,249 @@
-### Clean up calls to names
+## Location, Scale, Nominal
+organise <- function(formula, data, weights, subset, na.action) {
+  require(Formula)
+  require(gnm)
+  thisCall <- match.call()
+  if (missing(formula)) stop("A specification of location is absent")
+  if (missing(data)) {
+    data <- environment(formula)
+  }
+  mf <- match.call(expand.dots = FALSE)
+  mf$drop.unused.levels <- TRUE
+  oformula <- as.formula(formula)
+  formula <- as.Formula(formula)
+  if (length(formula)[2L] < 2L) {
+    formula <- as.Formula(formula(formula), ~ 1, ~ 1)
+    simple_formula <- TRUE
+  }
+  if (length(formula)[2L] == 2) {
+    formula <- as.Formula(formula(formula), ~ 1)
+    simple_formula <- TRUE
+  }
 
+  else {
+    if (length(formula)[2L] > 3L) {
+      formula <- Formula(formula(formula, rhs = 1:3))
+      warning("formula must not have more than three RHS parts")
+    }
+    simple_formula <- FALSE
+  }
+  mf$formula <- formula
+  mf[[1L]] <- as.name("model.frame")
+  mf <- eval(mf, parent.frame())
+
+  .dataCurrent <- mf
+  termsmf <- attr(.dataCurrent, "terms")
+  nam <- names(.dataCurrent)
+  responseName <- names(model.part(formula, data = .dataCurrent, lhs = 1L))
+
+  if (!("(weights)" %in% nam)) {
+    .dataCurrent[["(weights)"]] <- rep(1, nrow(.dataCurrent))
+    nam <- c(nam, "(weights)")
+  }
+
+  if (!is.factor(model.response(mf))) {
+    stop("The response needs to be a factor")
+  }
+
+  mtL <- terms(formula, data = mf, rhs = 1L)
+  interceptOnly <- identical(all.vars(mtL), responseName)
+  if (interceptOnly) {
+    .dataCurrent$TEMPORARYVARIABLE <- 1
+    nam <- c(nam, "TEMPORARYVARIABLE")
+  }
+
+  .dataCurrent <- expandCategorical(.dataCurrent, responseName, group = FALSE)
+  .dataCurrent[["(weights)"]] <- c(.dataCurrent[["(weights)"]] * .dataCurrent[["count"]])
+  inds <- match(c(nam[-1], nam[1]), names(.dataCurrent))
+  .dataCurrent <- groupDat(.dataCurrent[, inds], responseName, "(weights)")
+  .dataCurrent <- .dataCurrent[nam]
+  attr(.dataCurrent, "terms") <- attr(mf, "terms")
+
+  if (interceptOnly) {
+    .dataCurrent$TEMPORARYVARIABLE <- NULL
+  }
+
+
+  mt <- terms(formula, data = .dataCurrent)
+  mtL <- terms(formula, data = .dataCurrent, rhs = 1L)
+  mtS <- delete.response(terms(formula, data = .dataCurrent, rhs = 2L))
+  mtN <- delete.response(terms(formula, data = .dataCurrent, rhs = 3L))
+  Y <- model.response(.dataCurrent, "any")
+  N <- length(Y)
+  if (N < 1)
+    stop("empty model")
+
+  ## Useful integers
+  lev <- levels(Y)
+  nlev <- length(lev)
+  q <- nlev - 1
+  NcovClass <- N/nlev
+  Nobs <- NcovClass*q
+  rownames(.dataCurrent) <- paste(rep(1:NcovClass, each = nlev),
+                                  rep(1:nlev, times = NcovClass), sep = ".")
+
+  ## Set-up model matrices
+  XL <- model.matrix(mtL, .dataCurrent)
+  XN <- model.matrix(mtN, .dataCurrent)
+  XS <- model.matrix(mtS, .dataCurrent)
+
+  XLInt <-  match("(Intercept)", colnames(XL), nomatch = 0)
+  XNInt <-  match("(Intercept)", colnames(XN), nomatch = 0)
+  XSInt <-  match("(Intercept)", colnames(XS), nomatch = 0)
+
+  ## If Intercept is not in the model matrix then add it for checking
+  ## the aliasing later, and also give warnings if this happens in the
+  ## location specification
+  if (XLInt <= 0) {
+    XL <- cbind(`(Intercept)` = rep(1, nrow(XL)), XL)
+    warning("an intercept is needed and assumed in the location specification")
+  }
+  if (XNInt <= 0) {
+    XN <- cbind(`(Intercept)` = rep(1, nrow(XN)), XN)
+    ## warning("an intercept is needed and assumed in the nominal specification")
+  }
+  if (XSInt <= 0) {
+    XS <- cbind(`(Intercept)` = rep(1, nrow(XS)), XS)
+    ## warning("an intercept is needed and assumed in the scale specification")
+  }
+
+  cleanAliasing <- function(mat) {
+    matQR <- qr(mat, tol = 1e-08, LAPACK = FALSE)
+    R <- matQR$rank
+    aliased <- logical(ncol(mat))
+    names <- colnames(mat)
+    if (R != ncol(mat)) {
+      mat <- mat[, matQR$pivot[1:matQR$rank], drop = FALSE]
+      aliased[-matQR$pivot[1:matQR$rank]] <- TRUE
+      if (R != qr(mat)$rank) {
+        stop("Failed to find a full rank design matrix", call. = FALSE)
+      }
+    }
+    attr(mat, "aliased") <- structure(aliased, .Names = names)
+    attr(mat, "variables") <- names
+    mat
+  }
+
+  ## Take care of aliasing within nominal
+  XN <- cleanAliasing(XN)
+  aliasedN <- attr(XN, "aliased")
+
+  ## Take care of nominal-location aliasing
+  XNL <- cleanAliasing(cbind(XN, XL))
+  aliasedNL <- attr(XNL, "aliased")
+  aliasedL <- aliasedNL[-seq.int(length.out = ncol(XN))]
+  XL <- XL[, !aliasedL, drop = FALSE]
+
+  ## Take care of nominal-scale aliasing
+  XNS <- cleanAliasing(cbind(XN, XS))
+  aliasedNS <- attr(XNS, "aliased")
+  aliasedS <- aliasedNS[-seq.int(length.out = ncol(XN))]
+  XS <- XS[, !aliasedS, drop = FALSE]
+
+  ## Remove intercept from nominal (forced to be in column 1)
+  XN <- XN[, -1, drop = FALSE]
+
+  ## Set parameter names and overall aliasing vector
+  .polrNam <- paste(lev[-nlev], lev[-1L], sep = "|")
+  aliasedL <- aliasedL[-1]
+  aliasedS <- aliasedS[-1]
+  aliasedN <- aliasedN[-1]
+  namesN <- names(aliasedN)
+  namesNN <- NULL
+  aliasedNN <- NULL
+  for (i in namesN) {
+    namesNN <- c(namesNN, paste(.polrNam, i, sep = "."))
+    aliasedNN <- c(aliasedNN, rep(aliasedN[i], q))
+  }
+  aliased <- c(aliasedL, aliasedNN, aliasedS)
+  names(aliased) <- c(if (length(aliasedL)) names(aliasedL) else NULL,
+                      namesNN,
+                      if (length(aliasedS)) paste("scale", names(aliasedS), sep = ".") else NULL)
+
+
+  ## Set-up appropriate model matrices --- include .polr
+  XL <- XL[-seq(nlev, N, nlev), , drop = FALSE]
+  .polr <- col(matrix(0, nrow(XL), q)) == rep(1:q, N/nlev) - 1L + 1L
+  colnames(.polr) <- .polrNam
+
+  XN <- XN[-seq(nlev, N, nlev), , drop = FALSE]
+  pN <- ncol(XN)
+  nominalNames <- colnames(XN)
+  XNNew <- NULL
+  if (pN > 0) {
+      for (i in 1:pN) {
+        Newmat <- XN[, i]*.polr
+        colnames(Newmat) <- paste(.polrNam, nominalNames[i], sep = ".")
+        XNNew <- cbind(XNNew, Newmat)
+      }
+  }
+
+  XL <- cbind(XL, if (pN > 0) -XNNew else NULL)
+  XLinear <- cbind(-XL, .polr)
+
+  XS <- XS[-seq(nlev, N, nlev), , drop = FALSE]
+
+  ## Handle weights
+  weights <- model.weights(.dataCurrent)
+  weights <- as.vector(weights)
+  names(weights) <- rownames(.dataCurrent)
+
+  ## Handle offsets
+  expand_offset <- function(offset) {
+    if (is.null(offset))
+      offset <- 0
+    if (length(offset) == 1)
+      offset <- rep.int(offset, N)
+    as.vector(offset)
+  }
+
+  offsetL <- expand_offset(model.offset(model.part(formula,
+                                                   data = .dataCurrent,
+                                                   rhs = 1L,
+                                                   terms = TRUE)))
+  offsetS <- expand_offset(model.offset(model.part(formula,
+                                                   data = .dataCurrent,
+                                                   rhs = 2L,
+                                                   terms = TRUE)))
+  offsetN <- expand_offset(model.offset(model.part(formula,
+                                                   data = .dataCurrent,
+                                                   rhs = 3L,
+                                                   terms = TRUE)))
+  if (!is.null(thisCall$offset)) {
+    offsetXL <- offsetXL + expand_offset(.dataCurrent[, "(offset)"])
+  }
+
+  ## offsetL will be substracted
+  ## offsetS will be added
+  offsetL <- offsetL[-seq(nlev, N, nlev)]
+  offsetS <- offsetS[-seq(nlev, N, nlev)]
+  offsetN <- offsetN[-seq(nlev, N, nlev)]
+
+
+  freqs <- matrix(.dataCurrent[["(weights)"]], nrow = nlev)
+  list(XL = XL,
+       XLinear = XLinear,
+       XS = XS,
+       weights = weights,
+       freqs = freqs,
+       totals = colSums(freqs),
+       dataReshaped = .dataCurrent,
+       offsetL = offsetL,
+       offsetS = offsetS,
+       offsetN = offsetN,
+       N = N,
+       q = q,
+       nlev = nlev,
+       NcovClass = NcovClass,
+       pN = ncol(XN),
+       pXL = ncol(XL),
+       pXS = ncol(XS),
+       aliased = aliased)
+}
+
+
+
+### Clean up calls to names
 ### Problems with subset, problems with expressions for the response
 bpolr <- function(formula,
                   scale,
@@ -86,6 +330,10 @@ bpolr <- function(formula,
   if (missing(scale)) MScale$formula <- ~ -1
   if (missing(nominal)) MNominal$formula <- ~ -1
 
+
+
+
+
   ## A clm call for starting values later; used only if start is not specified
   Mclm <- M
 
@@ -98,8 +346,8 @@ bpolr <- function(formula,
   TermsN <- attr(MNominal, "terms")
 
   ## Useful integers
-  nlev <- nlevels(model.response(MLocation))
   lev <- levels(model.response(MLocation))
+  nlev <- length(lev)
   q <- nlev - 1
   N <- nrow(.dat)
   NcovClass <- N/nlev
@@ -283,47 +531,55 @@ bpolr <- function(formula,
 
   step <- .Machine$integer.max
   historyEstimates <- NULL
-  for (niter in 1:maxit) {
-    stepPrev <- step
-    stepFactor <- 0
-    testhalf <- TRUE
-    if (history) {
-      historyEstimates <- cbind(historyEstimates, pars)
-    }
-    while (testhalf & stepFactor < 11) {
-      fit <- fitFun(pars, deriv = 2L)
-      scores <- gradFun(pars, fit = fit)
-      infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
-      if (failedInv <- inherits(infoInv, "try-error")) {
-        warning("failed to invert the information matrix: iteration stopped prematurely")
+  niter <- 0
+  failedInv <- FALSE
+  parsPrev <- pars
+  ## if maxit is 0 then simply evaluate everything at start
+  if (maxit > 0) {
+    ## Increase maxit by 1; otherwise if maxit is 1 nothing happens
+    ## because we move back to parsPrev after the end of the iteration
+    for (niter in 1:(maxit + 1)) {
+      stepPrev <- step
+      stepFactor <- 0
+      testhalf <- TRUE
+      if (history) {
+        historyEstimates <- cbind(historyEstimates, pars)
+      }
+      while (testhalf & stepFactor < 11) {
+        fit <- fitFun(pars, deriv = 2L)
+        scores <- gradFun(pars, fit = fit)
+        infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
+        if (failedInv <- inherits(infoInv, "try-error")) {
+          warning("failed to invert the information matrix: iteration stopped prematurely")
+          break
+        }
+        ## If invoInv cannot be inverted then the following is not evaluated
+        parsPrev <- pars
+        if (method == "BR") {
+          biasObject <- biasFun(pars, fit = fit, vcov = infoInv)
+          bias <- biasObject$bias
+          adjustment <- biasObject$adjustment
+        }
+        else {
+          bias <- 0
+          adjustment <- 0
+        }
+        if (trace) {
+          cat("===========================\n")
+          cat("Iteration: ", niter, "step factor", 2^(-stepFactor),  "\n")
+          cat("Inverse condition number:",
+              format(1/kappa(infoInv, exact = TRUE), nsmall = 5), "\n")
+          cat("Scores:\n", format(scores + adjustment, scientific = TRUE), "\n")
+          cat("===========================\n")
+        }
+        pars <- pars +
+          2^(-stepFactor) * (step <- infoInv %*% scores - bias)
+        stepFactor <- stepFactor + 1
+        testhalf <- drop(crossprod(stepPrev) < crossprod(step))
+      }
+      if (failedInv | (all(abs(step) < epsilon))) {
         break
       }
-      ## If invoInv cannot be inverted then the following is not evaluated
-      parsPrev <- pars
-      if (method == "BR") {
-        biasObject <- biasFun(pars, fit = fit, vcov = infoInv)
-        bias <- biasObject$bias
-        adjustment <- biasObject$adjustment
-      }
-      else {
-        bias <- 0
-        adjustment <- 0
-      }
-      if (trace) {
-        cat("===========================\n")
-        cat("Iteration: ", niter, "step factor", 2^(-stepFactor),  "\n")
-        cat("Inverse condition number:",
-            format(1/kappa(infoInv, exact = TRUE), nsmall = 5), "\n")
-        cat("Scores:\n", format(scores + adjustment, scientific = TRUE), "\n")
-        cat("===========================\n")
-      }
-      pars <- pars +
-        2^(-stepFactor) * (step <- infoInv %*% scores - bias)
-      stepFactor <- stepFactor + 1
-      testhalf <- drop(crossprod(stepPrev) < crossprod(step))
-    }
-    if (failedInv | (all(abs(step) < epsilon))) {
-      break
     }
   }
 
@@ -333,7 +589,7 @@ bpolr <- function(formula,
   ##   pars <- parsPrev
   ## }
   # OR
-  ## Use always the last invertible version of the Fisher information
+  ## Use always the most recent invertible version of the Fisher information
   pars <- parsPrev
 
   ## conduct single bias correction (if BC selected) else do not
@@ -354,6 +610,7 @@ bpolr <- function(formula,
   scores <- gradFun(pars, fit = fit)
   infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
 
+
   ## if method is BR then calcuate adjusted score functions else do
   ## not estimate their value
   if (method == "BR") {
@@ -363,16 +620,18 @@ bpolr <- function(formula,
   else {
      adjustedScores <- rep(NA_real_, pX + q + pV)
   }
-
   ## Just to cover the case where we revert back to the last value
   ## where the Fisher information was invertible
   failedInv <- failedInv | inherits(infoInv, "try-error")
 
-
-  if (history) {
-    colnames(historyEstimates) <- c("Starting",
-                                    paste("Iteration",
-                                          seq.int(length.out = niter- 1)))
+  ## If maxit is not zero then reduce the number of iterations by 1,
+  ## because we run till maxit + 1 and also pars <- parsPrev
+  if (maxit > 0) {
+    niter <- niter - 1
+    if (history) {
+        colnames(historyEstimates) <- c("Starting value",
+        if (niter > 0) paste("Iteration", seq.int(length.out = niter)) else NULL)
+    }
   }
   names(beta) <- colnames(XX)
   names(alpha) <- .polrNam
@@ -411,6 +670,17 @@ bpolr <- function(formula,
   class(rval) <- c("bpolr", "polr")
   rval
 }
+
+deviance.bpolr <- function(object) {
+  object$deviance
+}
+
+evalFit.bpolr <- function(object, at) {
+  method <- object$method
+  update(object, start = at, method = if (method == "BC") "ML" else method,
+         maxit = 0)
+}
+
 
 model.frame.bpolr <- function(formula, ...) {
   dots <- list(...)
@@ -537,14 +807,18 @@ print.bpolr <- function (x, scoreDigits = 2, ...)
     invisible(x)
 }
 
-coef.bpolr <- function(object, ...) {
-    c(object$beta, object$alpha, object$ta)
+coef.bpolr <- function(object,
+                               what = c("all", "alpha", "beta", "tau")) {
+  what <- match.arg(what)
+  beta <- object$beta
+  alpha <- object$alpha
+  tau <- object$tau
+  switch(what,
+         all = c(beta, alpha, tau),
+         alpha = alpha,
+         beta = beta,
+         gamma = gamma)
 }
-
-coefficients.bpolr <- function(object, ...) {
-    coef(object, ...)
-}
-
 
 summary.bpolr <-
 function (object, digits = max(3, .Options$digits - 3), correlation = FALSE,
