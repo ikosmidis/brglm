@@ -9,40 +9,79 @@
 ## Check thisCall$offset
 
 ## Location, Scale, Nominal
-organise <- function(formula, data, weights, subset, na.action,
-                     contrasts = NULL) {
-  require(Formula)
+## organise <- function(formula, data, weights, subset, na.action,
+##                      contrasts = NULL) {
+organise <- function(formula, contrasts = NULL, mf,
+                     drop.only.mid.categories = FALSE,
+                     drop.categories = FALSE) {
   require(gnm)
-  thisCall <- match.call()
-  if (missing(formula)) stop("A specification of location is absent")
-  if (missing(data)) {
-    data <- environment(formula)
-  }
-  mf <- match.call(expand.dots = FALSE)
-  mf$contrasts <- NULL
-  mf$drop.unused.levels <- TRUE
-  oformula <- as.formula(formula)
-  formula <- as.Formula(formula)
-  environment(formula) <- parent.frame()
-  if (length(formula)[2L] < 2L) {
-    formula <- as.Formula(formula(formula), ~ 1, ~ 1)
-    simple_formula <- TRUE
-  }
-  if (length(formula)[2L] == 2) {
-    formula <- as.Formula(formula(formula), ~ 1)
-    simple_formula <- TRUE
+  require(Formula)
+
+  ## To be used for dat resulted from expandCategorical
+  groupDat <- function(dat, response, weights) {
+    response1 <- dat[, response]
+    datNo <- dat[,-match(c(weights), names(dat))]
+    datNo[[response]] <- NULL
+    datNo[[response]] <- response1
+    ord <- do.call("order", datNo)
+    datord <- datNo[ord,]
+    dupp <- duplicated(datord)
+    inds <- which(!dupp)
+    reps <- c(diff(inds), nrow(datord) - rev(inds)[1] + 1)
+    inds1 <- rep(1:length(reps), reps)
+    wt <- c(tapply(dat[[weights]][ord], inds1, sum))
+    datt <- datord[inds,]
+    datt[[weights]] <- wt
+    datt
   }
 
-  else {
-    if (length(formula)[2L] > 3L) {
-      formula <- Formula(formula(formula, rhs = 1:3))
-      warning("formula must not have more than three RHS parts")
+  cleanAliasing <- function(mat) {
+    matQR <- qr(mat, tol = 1e-08, LAPACK = FALSE)
+    R <- matQR$rank
+    aliased <- logical(ncol(mat))
+    names <- colnames(mat)
+    if (R != ncol(mat)) {
+      mat <- mat[, matQR$pivot[1:matQR$rank], drop = FALSE]
+      aliased[-matQR$pivot[1:matQR$rank]] <- TRUE
+      if (R != qr(mat)$rank) {
+        stop("Failed to find a full rank design matrix", call. = FALSE)
+      }
     }
-    simple_formula <- FALSE
+    attr(mat, "aliased") <- structure(aliased, .Names = names)
+    attr(mat, "variables") <- names
+    mat
   }
-  mf$formula <- formula
-  mf[[1L]] <- as.name("model.frame")
-  mf <- eval(mf, parent.frame())
+
+  thisCall <- match.call()
+  ## if (missing(formula)) stop("A specification of location is absent")
+  ## if (missing(data)) {
+  ##   data <- environment(formula)
+  ## }
+  ## mf <- match.call(expand.dots = FALSE)
+  ## mf$contrasts <- NULL
+  ## mf$drop.unused.levels <- TRUE
+  ## oformula <- as.formula(formula)
+  ## formula <- as.Formula(formula)
+  ## environment(formula) <- parent.frame()
+  ## if (length(formula)[2L] < 2L) {
+  ##   formula <- as.Formula(formula(formula), ~ 1, ~ 1)
+  ##   simple_formula <- TRUE
+  ## }
+  ## if (length(formula)[2L] == 2) {
+  ##   formula <- as.Formula(formula(formula), ~ 1)
+  ##   simple_formula <- TRUE
+  ## }
+
+  ## else {
+  ##   if (length(formula)[2L] > 3L) {
+  ##     formula <- Formula(formula(formula, rhs = 1:3))
+  ##     warning("formula must not have more than three RHS parts")
+  ##   }
+  ##   simple_formula <- FALSE
+  ## }
+  ## mf$formula <- formula
+  ## mf[[1L]] <- as.name("model.frame")
+  ## mf <- eval(mf, parent.frame())
 
   .dataCurrent <- mf
   termsmf <- attr(.dataCurrent, "terms")
@@ -54,11 +93,11 @@ organise <- function(formula, data, weights, subset, na.action,
     nam <- c(nam, "(weights)")
   }
 
-  if (!is.factor(model.response(mf))) {
+  if (!is.factor(Y <- model.response(.dataCurrent))) {
     stop("The response needs to be a factor")
   }
 
-  mtL <- terms(formula, data = mf, rhs = 1L)
+  mtL <- terms(formula, data = .dataCurrent, rhs = 1L)
   interceptOnly <- identical(all.vars(mtL), responseName)
   if (interceptOnly) {
     .dataCurrent$TEMPORARYVARIABLE <- 1
@@ -70,13 +109,31 @@ organise <- function(formula, data, weights, subset, na.action,
   inds <- match(c(nam[-1], nam[1]), names(.dataCurrent))
   .dataCurrent <- groupDat(.dataCurrent[, inds], responseName, "(weights)")
   .dataCurrent <- .dataCurrent[nam]
-  attr(.dataCurrent, "terms") <- attr(mf, "terms")
 
   if (interceptOnly) {
     .dataCurrent$TEMPORARYVARIABLE <- NULL
   }
 
+  ## Remove any non-observed categories
+  attr(.dataCurrent, "terms") <- termsmf
+  if (drop.categories) {
+    empty <- tapply(model.weights(.dataCurrent),
+                    Y,
+                    sum) == 0
+    if (any(empty)) {
+      if (drop.only.mid.categories & (empty[1] | empty[nlevels(Y)])) {
+        empty[1] <- empty[nlevels(Y)] <- FALSE
+      }
+      empty <- which(empty)
+      .dataCurrent <- .dataCurrent[!match(model.response(.dataCurrent),  empty, nomatch = 0), ]
+      ## .dataCurrent <- .dataCurrent[model.response(.dataCurrent)!=empty,]
+      .dataCurrent <- droplevels(.dataCurrent,
+                                 except = !match(names(.dataCurrent), responseName, nomatch = 0))
+      attr(.dataCurrent, "terms") <- termsmf
+    }
+  }
 
+  ## Get model terms, responses and so on
   mt <- terms(formula, data = .dataCurrent)
   mtL <- terms(formula, data = .dataCurrent, rhs = 1L)
   mtS <- delete.response(terms(formula, data = .dataCurrent, rhs = 2L))
@@ -118,23 +175,6 @@ organise <- function(formula, data, weights, subset, na.action,
   if (XSInt <= 0) {
     XS <- cbind(`(Intercept)` = rep(1, nrow(XS)), XS)
     ## warning("an intercept is needed and assumed in the scale specification")
-  }
-
-  cleanAliasing <- function(mat) {
-    matQR <- qr(mat, tol = 1e-08, LAPACK = FALSE)
-    R <- matQR$rank
-    aliased <- logical(ncol(mat))
-    names <- colnames(mat)
-    if (R != ncol(mat)) {
-      mat <- mat[, matQR$pivot[1:matQR$rank], drop = FALSE]
-      aliased[-matQR$pivot[1:matQR$rank]] <- TRUE
-      if (R != qr(mat)$rank) {
-        stop("Failed to find a full rank design matrix", call. = FALSE)
-      }
-    }
-    attr(mat, "aliased") <- structure(aliased, .Names = names)
-    attr(mat, "variables") <- names
-    mat
   }
 
   ## Take care of aliasing within nominal
@@ -194,7 +234,7 @@ organise <- function(formula, data, weights, subset, na.action,
       }
   }
 
-  XL <- cbind(XL, if (pN > 0) -XNNew else NULL)
+  XL <- cbind(XL, if (pN > 0) XNNew else NULL)
   XLinear <- cbind(-XL, .polr)
 
   XS <- XS[-seq(nlev, N, nlev), , drop = FALSE]
@@ -244,6 +284,7 @@ organise <- function(formula, data, weights, subset, na.action,
        freqs = freqs,
        totals = colSums(freqs),
        dataReshaped = .dataCurrent,
+       dataOriginal = data,
        offsetL = offsetL,
        offsetS = offsetS,
        offsetN = offsetN,
@@ -278,10 +319,16 @@ bpolr <- function(formula,
                   epsilon = 1e-06,
                   history = TRUE,
                   trace = FALSE,
+                  drop.categories = TRUE,
                   ...) {
   require(ordinal)
+  require(Formula)
 
   if (missing(formula)) stop("A specification of location is absent")
+
+  if (missing(data)) {
+    data <- environment(formula)
+  }
 
   link <- match.arg(link)
   pfun <- switch(link,
@@ -302,15 +349,54 @@ bpolr <- function(formula,
 
   method <- match.arg(method)
 
-  subset <- if (missing(subset)) 1:nrow(data) else subset
-  na.action <- if (missing(na.action)) na.omit else na.action
-  weights <- if (missing(weights)) rep(1L, nrow(data)) else weights
-  object <- organise(formula = formula,
-                     data = data,
-                     weights = weights,
-                     subset = subset,
-                     na.action = na.action,
-                     contrasts = contrasts)
+
+  thisCall <- match.call()
+  if (missing(formula)) stop("A specification of location is absent")
+  if (missing(data)) {
+    data <- environment(formula)
+  }
+  mf <- match.call(expand.dots = FALSE)
+  mf$contrasts <- mf$start <-
+    mf$model <- mf$link <- mf$method <- mf$maxit <- mf$epsilon <-
+      mf$history <- mf$trace <- mf$... <- mf$drop.categories <- NULL
+  mf$drop.unused.levels <- TRUE
+  oformula <- as.formula(formula)
+  formula <- as.Formula(formula)
+  ##  environment(formula) <- parent.frame()
+  if (length(formula)[2L] < 2L) {
+    formula <- as.Formula(formula(formula), ~ 1, ~ 1)
+    ## simple_formula <- TRUE
+  }
+  if (length(formula)[2L] == 2) {
+    formula <- as.Formula(formula(formula), ~ 1)
+    ## simple_formula <- TRUE
+  }
+
+  else {
+    if (length(formula)[2L] > 3L) {
+      formula <- Formula(formula(formula, rhs = 1:3))
+      warning("formula must not have more than three RHS parts")
+    }
+    ## simple_formula <- FALSE
+  }
+  mf$formula <- formula
+  mf[[1L]] <- as.name("model.frame")
+  mf <- eval(mf, parent.frame())
+
+  object <- organise(formula, contrasts, mf,
+                     drop.categories = drop.categories,
+                     drop.only.mid.categories = (method == "BR"))
+
+
+  ## subset <- if (missing(subset)) NULL else subset
+  na.action <- if (missing(na.action)) NULL else na.action
+  ## weights <- if (missing(weights)) NULL else weights
+  ## object <- organise(formula = formula,
+  ##                    data = data,
+  ##                    weights = weights,
+  ##                    subset = subset,
+  ##                    na.action = na.action,
+  ##                    contrasts = contrasts)
 
 
 
@@ -466,12 +552,11 @@ bpolr <- function(formula,
     Mclm$nominal <- object$nominalFormula
     Mclm$link <- as.name("link")
     Mclm$weights <-as.name("www")
-    Mclm$control <- list(maxIter = 1)
+    Mclm$control <- list(maxIter = 10)
     datS <- .dat
     datS$www <- www
     Mclm$data <- as.name("datS")
     options(warn = -1)
-    browser()
     clmObject <- eval(Mclm)
     options(warn = 0)
     ## zeta is what is called tau here
@@ -479,7 +564,8 @@ bpolr <- function(formula,
               clmObject$alpha[1:q], clmObject$zeta)
   }
   else {
-    if (missing(scale)) {
+    if (pXS <= 0) {
+      ## browser()
       if (length(start)!=(pXL + q))
         stop("'start' is not of the correct length", call. = FALSE)
     }
@@ -606,6 +692,11 @@ bpolr <- function(formula,
   alpha <- parsN[alphaNames]
   tau <- parsN[tauNames]
 
+  ## Extend the inverse of the FIsher Information to include aliased paraeters
+  vcov <- structure(matrix(NA, length(coefNames), length(coefNames)),
+                    .Dimnames = list(coefNames, coefNames))
+  vcov[!aliased, !aliased] <- infoInv
+
   inadmissible <- any((prob < 0) | (prob > 1))
 
   ## Return value
@@ -615,8 +706,9 @@ bpolr <- function(formula,
                bias = bias,
                scores = scores,
                adjustedScores = adjustedScores,
-               vcov = infoInv,
+               vcov = vcov,
                call = match.call(),
+               dataOriginal = if (missing(data)) NULL else data,
                dataReshaped = .dat,
                fitted.values = structure(c(prob), .Names = rownames(.dat)),
                deviance = -2 * sum(freqs[freqs != 0]*log(prob[freqs != 0])),
@@ -633,7 +725,7 @@ bpolr <- function(formula,
                nobs = sum(freqs), ## WHY?
                na.action = na.action,
                #xlevelsLocation = .getXlevels(TermsL, MLocation),
-               model = if (model) .dat else NULL,
+               model = if (model) mf else NULL,
                #xlevelsScale = if (pXS > 0) .getXlevels(TermsS, MScale) else NULL,
                contrasts = attr(XL, "contrasts"))
   class(rval) <- c("bpolr", "polr")
@@ -648,46 +740,6 @@ evalFit.bpolr <- function(object, at) {
   method <- object$method
   update(object, start = at, method = if (method == "BC") "ML" else method,
          maxit = 0)
-}
-
-
-model.frame.bpolr <- function(formula, ...) {
-  dots <- list(...)
-  nargs <- dots[match(c("data", "na.action", "subset"), names(dots),
-                    0)]
-  if (length(nargs) || is.null(formula$model)) {
-    M  <- formula$call
-    if (is.matrix(eval.parent(M$data)))
-      M$data <- as.data.frame(data)
-    M$start <- M$method <- M$link <- M$model <- M$maxit <- M$epsilon <-
-      M$keepHistory <- M$trace <- M$slowIt <- M$... <- NULL
-    M[[1L]] <- as.name("model.frame")
-    MScale <- MLocation <- Mdata <- M
-    MScale$formula <- MLocation$scale <- Mdata$scale <- Mdata$formula <-NULL
-    names(MScale)[names(MScale) == "scale"] <- "formula"
-    respNam <- as.character(MLocation$formula[[2]])
-    vars <- unique(c(all.vars(MLocation$formula), all.vars(MScale$formula)))
-    vars <- vars[vars!=respNam]
-    ff <- as.formula(paste(respNam, "~", paste(vars, collapse = " + ")))
-    respNam <- as.character(MLocation$formula[[2]])
-    Mdata$formula <- ff
-    .dat <- eval(Mdata)
-    termsMdata <- attr(.dat, "terms")
-    nam <- names(.dat)
-    if (!("(weights)"%in%nam)) {
-      .dat[["(weights)"]] <- rep(1, nrow(.dat))
-      nam <- c(nam, "(weights)")
-    }
-    MScale$weights <- MLocation$weights <- as.name("(weights)")
-    .dat <- expandCategorical(.dat, respNam, group = FALSE)
-    .dat[["(weights)"]] <- c(.dat[["(weights)"]] * .dat[["count"]])
-    inds <- match(c(nam[-1], nam[1]), names(.dat))
-    .dat <- groupDat(.dat[, inds], respNam, "(weights)")
-    .dat <- .dat[nam]
-    attr(.dat, "terms") <- termsMdata
-    .dat
-  }
-  else formula$model
 }
 
 ### Need print/summary methods that handle dispersion parameters
@@ -718,25 +770,6 @@ simulate.bpolr <- function(object) {
   }
   mf
 }
-
-## To be used for dat resulted from expandCategorical
-groupDat <- function(dat, response, weights) {
-  response1 <- dat[, response]
-  datNo <- dat[,-match(c(weights), names(dat))]
-  datNo[[response]] <- NULL
-  datNo[[response]] <- response1
-  ord <- do.call("order", datNo)
-  datord <- datNo[ord,]
-  dupp <- duplicated(datord)
-  inds <- which(!dupp)
-  reps <- c(diff(inds), nrow(datord) - rev(inds)[1] + 1)
-  inds1 <- rep(1:length(reps), reps)
-  wt <- c(tapply(dat[[weights]][ord], inds1, sum))
-  datt <- datord[inds,]
-  datt[[weights]] <- wt
-  datt
-}
-
 print.bpolr <- function (x, scoreDigits = 2, ...)
 {
     if (!is.null(cl <- x$call)) {
@@ -786,7 +819,7 @@ coef.bpolr <- function(object,
          all = c(beta, alpha, tau),
          alpha = alpha,
          beta = beta,
-         gamma = gamma)
+         tau = tau)
 }
 
 summary.bpolr <-
@@ -844,11 +877,13 @@ print.summary.bpolr <- function (x, digits = x$digits, ...) {
     cat("\nNo coefficients\n")
   }
   cat("\nIntercepts:\n")
-    print(x$coef[(x$pc + 1L):(x$pc + x$q), , drop = FALSE], quote = FALSE,
+    print(x$coef[seq_len(x$q) + x$pc, , drop = FALSE], quote = FALSE,
           digits = digits, ...)
-  cat("\nScale parameters:\n")
-  print(x$coef[(x$pc + x$q + 1L):(x$pc + x$q + x$pt), , drop = FALSE], quote = FALSE,
-        digits = digits, ...)
+  if (x$pt > 0) {
+    cat("\nScale parameters:\n")
+    print(x$coef[seq_len(x$pt) + x$pc + x$q, , drop = FALSE], quote = FALSE,
+          digits = digits, ...)
+  }
   cat("\nResidual Deviance:", format(x$deviance, nsmall = 2L),
       "\n")
   cat("AIC:", format(x$deviance + 2 * x$edf, nsmall = 2L),
