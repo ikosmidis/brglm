@@ -13,7 +13,7 @@
 ##                      contrasts = NULL) {
 organise <- function(formula, contrasts = NULL, mf,
                      drop.only.mid.categories = FALSE,
-                     drop.categories = FALSE) {
+                     drop.empty.categories = FALSE) {
   require(gnm)
   require(Formula)
 
@@ -116,7 +116,7 @@ organise <- function(formula, contrasts = NULL, mf,
 
   ## Remove any non-observed categories
   attr(.dataCurrent, "terms") <- termsmf
-  if (drop.categories) {
+  if (drop.empty.categories) {
     empty <- tapply(model.weights(.dataCurrent),
                     Y,
                     sum) == 0
@@ -305,6 +305,12 @@ organise <- function(formula, contrasts = NULL, mf,
 }
 
 
+
+
+
+
+
+
 bpolr <- function(formula,
                   data,
                   weights,
@@ -319,7 +325,7 @@ bpolr <- function(formula,
                   epsilon = 1e-06,
                   history = TRUE,
                   trace = FALSE,
-                  drop.categories = TRUE,
+                  drop.empty.categories = TRUE,
                   ...) {
   require(ordinal)
   require(Formula)
@@ -358,7 +364,7 @@ bpolr <- function(formula,
   mf <- match.call(expand.dots = FALSE)
   mf$contrasts <- mf$start <-
     mf$model <- mf$link <- mf$method <- mf$maxit <- mf$epsilon <-
-      mf$history <- mf$trace <- mf$... <- mf$drop.categories <- NULL
+      mf$history <- mf$trace <- mf$... <- mf$drop.empty.categories <- NULL
   mf$drop.unused.levels <- TRUE
   oformula <- as.formula(formula)
   formula <- as.Formula(formula)
@@ -384,7 +390,7 @@ bpolr <- function(formula,
   mf <- eval(mf, parent.frame())
 
   object <- organise(formula, contrasts, mf,
-                     drop.categories = drop.categories,
+                     drop.empty.categories = drop.empty.categories,
                      drop.only.mid.categories = (method == "BR"))
 
 
