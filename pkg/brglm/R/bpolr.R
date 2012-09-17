@@ -1,5 +1,16 @@
+## Starting values is essential
+
+### Clean up calls to names in bpolr
+
+## Fix the odd handling of nominal effects, ie. sign...
+
+## .dat is redundant object in bpolr
+
+## Check thisCall$offset
+
 ## Location, Scale, Nominal
-organise <- function(formula, data, weights, subset, na.action) {
+organise <- function(formula, data, weights, subset, na.action,
+                     contrasts = NULL) {
   require(Formula)
   require(gnm)
   thisCall <- match.call()
@@ -8,9 +19,11 @@ organise <- function(formula, data, weights, subset, na.action) {
     data <- environment(formula)
   }
   mf <- match.call(expand.dots = FALSE)
+  mf$contrasts <- NULL
   mf$drop.unused.levels <- TRUE
   oformula <- as.formula(formula)
   formula <- as.Formula(formula)
+  environment(formula) <- parent.frame()
   if (length(formula)[2L] < 2L) {
     formula <- as.Formula(formula(formula), ~ 1, ~ 1)
     simple_formula <- TRUE
@@ -83,9 +96,9 @@ organise <- function(formula, data, weights, subset, na.action) {
                                   rep(1:nlev, times = NcovClass), sep = ".")
 
   ## Set-up model matrices
-  XL <- model.matrix(mtL, .dataCurrent)
-  XN <- model.matrix(mtN, .dataCurrent)
-  XS <- model.matrix(mtS, .dataCurrent)
+  XL <- model.matrix(mtL, .dataCurrent, contrasts = contrasts)
+  XN <- model.matrix(mtN, .dataCurrent, contrasts = contrasts)
+  XS <- model.matrix(mtS, .dataCurrent, contrasts = contrasts)
 
   XLInt <-  match("(Intercept)", colnames(XL), nomatch = 0)
   XNInt <-  match("(Intercept)", colnames(XN), nomatch = 0)
@@ -138,6 +151,7 @@ organise <- function(formula, data, weights, subset, na.action) {
   XNS <- cleanAliasing(cbind(XN, XS))
   aliasedNS <- attr(XNS, "aliased")
   aliasedS <- aliasedNS[-seq.int(length.out = ncol(XN))]
+  colnames(XS) <- paste("scale", names(aliasedS), sep = ".")
   XS <- XS[, !aliasedS, drop = FALSE]
 
   ## Remove intercept from nominal (forced to be in column 1)
@@ -155,11 +169,13 @@ organise <- function(formula, data, weights, subset, na.action) {
     namesNN <- c(namesNN, paste(.polrNam, i, sep = "."))
     aliasedNN <- c(aliasedNN, rep(aliasedN[i], q))
   }
-  aliased <- c(aliasedL, aliasedNN, aliasedS)
-  names(aliased) <- c(if (length(aliasedL)) names(aliasedL) else NULL,
-                      namesNN,
-                      if (length(aliasedS)) paste("scale", names(aliasedS), sep = ".") else NULL)
+  aliased <- c(aliasedL, aliasedNN, logical(q), aliasedS)
 
+  alphaNames <- .polrNam
+  betaNames <- c(if (length(aliasedL)) names(aliasedL) else NULL,
+                 namesNN)
+  tauNames <- if (length(aliasedS)) paste("scale", names(aliasedS), sep = ".") else NULL
+  names(aliased) <- c(betaNames, alphaNames, tauNames)
 
   ## Set-up appropriate model matrices --- include .polr
   XL <- XL[-seq(nlev, N, nlev), , drop = FALSE]
@@ -238,16 +254,17 @@ organise <- function(formula, data, weights, subset, na.action) {
        pN = ncol(XN),
        pXL = ncol(XL),
        pXS = ncol(XS),
-       aliased = aliased)
+       aliased = aliased,
+       locationFormula = formula(formula, lhs = 1L, rhs = 1L),
+       scaleFormula = formula(formula, lhs = 0L, rhs = 2L),
+       nominalFormula = formula(formula, lhs = 0L, rhs = 3L),
+       alphaNames = alphaNames,
+       betaNames = betaNames,
+       tauNames = tauNames)
 }
 
 
-
-### Clean up calls to names
-### Problems with subset, problems with expressions for the response
 bpolr <- function(formula,
-                  scale,
-                  nominal,
                   data,
                   weights,
                   start = NULL,
@@ -262,8 +279,10 @@ bpolr <- function(formula,
                   history = TRUE,
                   trace = FALSE,
                   ...) {
-  M  <- match.call(expand.dots = FALSE)
+  require(ordinal)
+
   if (missing(formula)) stop("A specification of location is absent")
+
   link <- match.arg(link)
   pfun <- switch(link,
                  logit = make.link("logit")$linkinv,
@@ -280,130 +299,68 @@ bpolr <- function(formula,
                   probit = function(eta) -eta*dfun(eta),
                   cloglog = function(eta) dfun(eta)*(1 - exp(eta)),
                   cauchit = function(eta) -2*pi*eta*dfun(eta)^2)
-  require(gnm)
-  require(ordinal)
+
   method <- match.arg(method)
-  if (is.matrix(eval.parent(M$data)))
-    M$data <- as.data.frame(data)
-  M$start <- M$method <- M$link <- M$model <- M$maxit <- M$epsilon <-
-    M$history <- M$trace <- M$... <- NULL
-  M[[1L]] <- as.name("model.frame")
-  MScale <- MLocation <- Mdata <- MNominal <- M
-  MScale$formula <- MScale$nominal <-
-      MLocation$scale <- MLocation$nominal <-
-          Mdata$scale <- Mdata$formula <- Mdata$nominal <-
-              MNominal$formula <- MNominal$scale <- NULL
-  names(MScale)[names(MScale) == "scale"] <- "formula"
-  names(MNominal)[names(MNominal) == "nominal"] <- "formula"
-  respNam <- as.character(MLocation$formula[[2]])
-  vars <- unique(c(all.vars(MLocation$formula),
-                   all.vars(MScale$formula),
-                   all.vars(MNominal$formula)))
-  vars <- vars[vars!=respNam]
 
-  ## Take care of intercept only models
-  if (length(vars)) {
-      ff <- as.formula(paste(respNam, "~", paste(vars, collapse = " + ")))
-  }
-  else
-      ff <- as.formula(paste(respNam, "~ 1"))
-  environment(ff) <- environment(formula)
-  Mdata$formula <- ff
-  .dat <- eval(Mdata)
-
-  ## hack for intercept only models
-  ## .dat$x <- c(1,1,1)
-  termsMdata <- attr(.dat, "terms")
-  nam <- names(.dat)
-  if (!("(weights)"%in%nam)) {
-    .dat[["(weights)"]] <- rep(1, nrow(.dat))
-    nam <- c(nam, "(weights)")
-  }
-  MScale$weights <- MLocation$weights <- MNominal$weights <- as.name("(weights)")
-  .dat <- expandCategorical(.dat, respNam, group = FALSE)
-  .dat[["(weights)"]] <- c(.dat[["(weights)"]] * .dat[["count"]])
-  inds <- match(c(nam[-1], nam[1]), names(.dat))
-  .dat <- groupDat(.dat[, inds], respNam, "(weights)")
-  .dat <- .dat[nam]
-  attr(.dat, "terms") <- termsMdata
-  MScale$data <- MLocation$data <- MNominal$data <- as.name(".dat")
-  if (missing(scale)) MScale$formula <- ~ -1
-  if (missing(nominal)) MNominal$formula <- ~ -1
+  subset <- if (missing(subset)) 1:nrow(data) else subset
+  na.action <- if (missing(na.action)) na.omit else na.action
+  weights <- if (missing(weights)) rep(1L, nrow(data)) else weights
+  object <- organise(formula = formula,
+                     data = data,
+                     weights = weights,
+                     subset = subset,
+                     na.action = na.action,
+                     contrasts = contrasts)
 
 
 
+  ## A clm call for starting values later; used only if start is not
+  ## specified and plan is to get rid of it
+  Mclm <- match.call(expand.dots = FALSE)
+  Mclm$start <- Mclm$method <- Mclm$link <- Mclm$model <-
+    Mclm$maxit <- Mclm$epsilon <-
+    Mclm$history <- Mclm$trace <- Mclm$... <- NULL
 
-
-  ## A clm call for starting values later; used only if start is not specified
-  Mclm <- M
-
-  MLocation$subset <- MScale$subset <- MNominal$subset <- NULL
-  MLocation <- eval(MLocation)
-  MScale <- eval(MScale)
-  MNominal <- eval(MNominal)
-  TermsL <- attr(MLocation, "terms")
-  TermsS <- attr(MScale, "terms")
-  TermsN <- attr(MNominal, "terms")
+  ############################
+  ## Maybe work within object?
+  ############################
 
   ## Useful integers
-  lev <- levels(model.response(MLocation))
-  nlev <- length(lev)
-  q <- nlev - 1
-  N <- nrow(.dat)
-  NcovClass <- N/nlev
-  Nobs <- NcovClass*q
-  rownames(.dat) <- paste(rep(1:NcovClass, each = nlev),
-                          rep(1:nlev, times = NcovClass), sep = ".")
+  nlev <- object$nlev
+  q <- object$q
+  N <- object$N
+  .dat <- object$dataReshaped
+  NcovClass <- object$NcovClass
+  Nobs <- object$Nobs
+  pXS <- object$pXS
+  pXL <- object$pXL
 
   ## Frequencies and totals
-  freqs <- matrix(.dat[["(weights)"]], nrow = nlev)
-  totals <- colSums(freqs)
+  freqs <- object$freqs
+  totals <- object$totals
 
-  ## Set up model matrices
-  X <- model.matrix(TermsL, MLocation)
-  V <- model.matrix(TermsS, MScale)
-  NN <- model.matrix(TermsN, MNominal)
-  XX <- X[-seq(nlev, N, nlev), -1, drop = FALSE]
-  .polr <- col(matrix(0, nrow(XX), q)) == rep(1:q, N/nlev)
-  colnames(.polr) <- .polrNam <- paste(lev[-nlev], lev[-1L], sep = "|")
+  ## Get model matrices
+  XL <- object$XL
+  XLinear <- object$XLinear
+  XS <- object$XS
 
-  ## Construct the nominal effects
-  NN <- NN[-seq(nlev, N, nlev), -1, drop = FALSE]
-  pN <- ncol(NN)
-  nominalNames <- colnames(NN)
-  NNew <- NULL
-  if (pN > 0) {
-      for (i in 1:pN) {
-          Newmat <- NN[, i]*.polr
-          colnames(Newmat) <- paste(.polrNam, nominalNames[i], sep = ".")
-          NNew <- cbind(NNew, Newmat)
-      }
-  }
-  XX <- cbind(XX, if (pN > 0) -NNew else NULL)
-  Xlin <- cbind(-XX, .polr)
-  VV <- V[-seq(nlev, N, nlev), -1, drop = FALSE]
+  ## Get offsets
+  offsetL <- object$offsetL
+  offsetS <- object$offsetS
 
-  ## Set up offsets
-  offsetL <- model.offset(MLocation)
-  offsetS <- model.offset(MScale)
-  if (is.null(offsetL)) offsetL <- rep(0, N)
-  if (is.null(offsetS)) offsetS <- rep(0, N)
+  ## Aliasing vector and names
+  aliased <- object$aliased
+  alphaNames <- object$alphaNames
+  betaNames <- object$betaNames
+  tauNames <- object$tauNames
 
-  ## offsetL will be substracted
-  ## offsetV will be added
-  offsetL <- offsetL[-seq(nlev, N, nlev)]
-  offsetS <- offsetS[-seq(nlev, N, nlev)]
+  ############################
 
-  ## More useful integers
-  pX <- ncol(XX)
-  pV <- ncol(VV)
+  coefNames <- c(betaNames, alphaNames, tauNames)
 
-  if (pV > 0) {
-    colnames(VV) <- paste("scale", colnames(VV), sep = ".")
-  }
+  ## Necessary quantities
   inds <- sapply(1:NcovClass,
                  function(i) (1 + (i - 1)*q):(i*q))
-
   if (q > 1) {
     mitre <- diag(q) - cbind(0, rbind(diag(q - 1), 0))
   }
@@ -413,12 +370,12 @@ bpolr <- function(formula,
   }
 
   fitFun <- function(pars, deriv = 1L) {
-    beta <- pars[seq.int(length.out = pX)]
-    alpha <- pars[seq.int(length.out = q) + pX]
-    tau <- pars[seq.int(length.out = pV) + q + pX]
-    etas <- matrix(c(drop(Xlin %*% c(beta, alpha)) - offsetL)/
-                   exp(drop(VV %*% tau + offsetS)), nrow = q)
-    Z <- cbind(Xlin/exp(drop(VV %*% tau)), if (pV > 0) -VV*c(etas) else NULL)
+    beta <- pars[seq.int(length.out = pXL)]
+    alpha <- pars[seq.int(length.out = q) + pXL]
+    tau <- pars[seq.int(length.out = pXS) + q + pXL]
+    etas <- matrix(c(drop(XLinear %*% c(beta, alpha)) - offsetL)/
+                   exp(drop(XS %*% tau + offsetS)), nrow = q)
+    Z <- cbind(XLinear/exp(drop(XS %*% tau)), if (pXS > 0) -XS*c(etas) else NULL)
     cumprob <- pfun(etas)
     gs <- dfun(etas)
     prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
@@ -450,14 +407,14 @@ bpolr <- function(formula,
                    fit = fitFun(pars, deriv = 2L),
                    vcov = infoFun(pars, fit = fit, inverse = TRUE)) {
     if (inherits(vcov, "try-error")) {
-      list(bias = rep(NA_real_, pX + q + pV),
-           adjustment = rep(NA_real_, pX + q + pV))
+      list(bias = rep(NA_real_, pXL + q + pXS),
+           adjustment = rep(NA_real_, pXL + q + pXS))
     }
     else {
       adj <- 0
       with(fit, {
         cc <- matrix(0, nrow(prob), ncol(prob))
-        if (pV == 0) {
+        if (pXS == 0) {
           for (i in 1:NcovClass) {
             Zr <- Z[inds[,i], , drop = FALSE]
             Ar <- Zr %*% vcov %*% t(Zr)
@@ -466,10 +423,10 @@ bpolr <- function(formula,
           }
         }
         else {
-          invFtt <- vcov[pX + q + 1:pV, pX + q + 1:pV]
-          invFat <- vcov[pX + 1:q, pX + q + 1:pV]
-          invFbt <- vcov[1:pX, pX + q + 1:pV]
-          taus <- pars[q + pX + 1:pV]
+          invFtt <- vcov[pXL + q + 1:pXS, pXL + q + 1:pXS]
+          invFat <- vcov[pXL + 1:q, pXL + q + 1:pXS]
+          invFbt <- vcov[1:pXL, pXL + q + 1:pXS]
+          taus <- pars[q + pXL + 1:pXS]
           for (i in 1:NcovClass) {
             Zr <- Z[inds[,i], , drop = FALSE]
             Ar <- Zr %*% vcov %*% t(Zr)
@@ -479,11 +436,11 @@ bpolr <- function(formula,
             invCovr <- 1/prob[nlev, i] + if (q == 1) 1/prob[1, i, drop = FALSE] else diag(1/prob[1:q, i])
             Dr <- mitre * gs[, i]
             Wr <- totals[i]*Dr%*%invCovr%*%t(Dr)
-            vr <- VV[inds[1, i], ]
-            xr <- XX[inds[1, i], ]
+            vr <- XS[inds[1, i], ]
+            xr <- XL[inds[1, i], ]
             adj <- adj + 0.5 * (vr %*% invFtt %*% vr) * c(Wr %*% etar) * Zr -
               exp(-sum(taus * vr)) * c( Wr %*% invFat %*% vr -
-                                   if (pX > 0)
+                                   if (pXL > 0)
                                        xr %*% invFbt %*% vr * rowSums(Wr)
                                    else 0)*Zr
           }
@@ -501,16 +458,20 @@ bpolr <- function(formula,
     ## Add something small to zero weights to avoid the
     ## possibility of boundary estimates
     ### Hmmm... maybe get starting values using many binomial regressions?
-    www <- .dat[["(weights)"]]
-    www[www == 0] <- 0.5*(pX + q + pV)/sum(www)
+    www <- object$weights
+    www[www == 0] <- 0.5*(pXL + q + pXS)/sum(www)
     Mclm[[1L]] <- as.name("clm")
+    Mclm$formula <- object$locationFormula
+    Mclm$scale <- object$scaleFormula
+    Mclm$nominal <- object$nominalFormula
     Mclm$link <- as.name("link")
     Mclm$weights <-as.name("www")
-    Mclm$maxIter <- 2
+    Mclm$control <- list(maxIter = 1)
     datS <- .dat
     datS$www <- www
     Mclm$data <- as.name("datS")
     options(warn = -1)
+    browser()
     clmObject <- eval(Mclm)
     options(warn = 0)
     ## zeta is what is called tau here
@@ -519,11 +480,11 @@ bpolr <- function(formula,
   }
   else {
     if (missing(scale)) {
-      if (length(start)!=(pX + q))
+      if (length(start)!=(pXL + q))
         stop("'start' is not of the correct length", call. = FALSE)
     }
     else {
-      if (length(start)!=(pX + pV + q))
+      if (length(start)!=(pXL + pXS + q))
         stop("'start' is not of the correct length", call. = FALSE)
     }
     pars <- start
@@ -533,7 +494,13 @@ bpolr <- function(formula,
   historyEstimates <- NULL
   niter <- 0
   failedInv <- FALSE
+
+  #### Fix me --- too much names here...
+  names(pars) <- coefNames
+  pars <- pars[!aliased]
+
   parsPrev <- pars
+
   ## if maxit is 0 then simply evaluate everything at start
   if (maxit > 0) {
     ## Increase maxit by 1; otherwise if maxit is 1 nothing happens
@@ -599,13 +566,10 @@ bpolr <- function(formula,
     pars <- pars - bias
   }
   else {
-    bias <- rep(NA_real_, pX + q + pV)
+    bias <- rep(NA_real_, pXL + q + pXS)
   }
 
   fit <- fitFun(pars)
-  beta <- fit$beta
-  alpha <- fit$alpha
-  tau <- fit$tau
   prob <- fit$prob
   scores <- gradFun(pars, fit = fit)
   infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
@@ -618,7 +582,7 @@ bpolr <- function(formula,
       biasFun(pars, fit = fit, vcov = infoInv)$adjustment
   }
   else {
-     adjustedScores <- rep(NA_real_, pX + q + pV)
+     adjustedScores <- rep(NA_real_, pXL + q + pXS)
   }
   ## Just to cover the case where we revert back to the last value
   ## where the Fisher information was invertible
@@ -633,9 +597,14 @@ bpolr <- function(formula,
         if (niter > 0) paste("Iteration", seq.int(length.out = niter)) else NULL)
     }
   }
-  names(beta) <- colnames(XX)
-  names(alpha) <- .polrNam
-  names(tau) <- colnames(VV)
+
+  ## Extend the parameter vector to include aliased paraeters
+  parsN <- structure(rep(NA, length(coefNames)), .Names = coefNames)
+  parsN[!aliased] <- pars
+
+  beta <- parsN[betaNames]
+  alpha <- parsN[alphaNames]
+  tau <- parsN[tauNames]
 
   inadmissible <- any((prob < 0) | (prob > 1))
 
@@ -658,15 +627,15 @@ bpolr <- function(formula,
                inadmissible = inadmissible,
                method = method,
                eta = fit$eta,
-               df.residual = sum(freqs) - pX - q - pV,
-               edf = pX + q + pV,
+               df.residual = sum(freqs) - pXL - q - pXS,
+               edf = pXL + q + pXS,
                n = sum(freqs),
                nobs = sum(freqs), ## WHY?
-               na.action = attr(MLocation, "na.action"),
-               xlevelsLocation = .getXlevels(TermsL, MLocation),
+               na.action = na.action,
+               #xlevelsLocation = .getXlevels(TermsL, MLocation),
                model = if (model) .dat else NULL,
-               xlevelsScale = if (pV > 0) .getXlevels(TermsS, MScale) else NULL,
-               contrasts = attr(X, "contrasts"))
+               #xlevelsScale = if (pXS > 0) .getXlevels(TermsS, MScale) else NULL,
+               contrasts = attr(XL, "contrasts"))
   class(rval) <- c("bpolr", "polr")
   rval
 }
