@@ -93,7 +93,7 @@ organise <- function(formula, contrasts = NULL, mf,
     nam <- c(nam, "(weights)")
   }
 
-  if (!is.factor(Y <- model.response(.dataCurrent))) {
+  if (!is.factor(model.response(.dataCurrent))) {
     stop("The response needs to be a factor")
   }
 
@@ -118,15 +118,14 @@ organise <- function(formula, contrasts = NULL, mf,
   attr(.dataCurrent, "terms") <- termsmf
   if (drop.empty.categories) {
     empty <- tapply(model.weights(.dataCurrent),
-                    Y,
+                    Y <- model.response(.dataCurrent),
                     sum) == 0
     if (any(empty)) {
       if (drop.only.mid.categories & (empty[1] | empty[nlevels(Y)])) {
         empty[1] <- empty[nlevels(Y)] <- FALSE
       }
       empty <- which(empty)
-      .dataCurrent <- .dataCurrent[!match(model.response(.dataCurrent),  empty, nomatch = 0), ]
-      ## .dataCurrent <- .dataCurrent[model.response(.dataCurrent)!=empty,]
+      .dataCurrent <- .dataCurrent[!match(Y,  levels(Y)[empty], nomatch = 0), ]
       .dataCurrent <- droplevels(.dataCurrent,
                                  except = !match(names(.dataCurrent), responseName, nomatch = 0))
       attr(.dataCurrent, "terms") <- termsmf
@@ -306,11 +305,6 @@ organise <- function(formula, contrasts = NULL, mf,
 
 
 
-
-
-
-
-
 bpolr <- function(formula,
                   data,
                   weights,
@@ -321,8 +315,8 @@ bpolr <- function(formula,
                   model = TRUE,
                   link = c("logit", "probit", "cloglog", "cauchit"),
                   method = c("ML", "BR", "BC"),
-                  maxit = 100,
-                  epsilon = 1e-06,
+                  maxit = 500,
+                  epsilon = 1e-08,
                   history = TRUE,
                   trace = FALSE,
                   drop.empty.categories = TRUE,
@@ -558,7 +552,7 @@ bpolr <- function(formula,
     Mclm$nominal <- object$nominalFormula
     Mclm$link <- as.name("link")
     Mclm$weights <-as.name("www")
-    Mclm$control <- list(maxIter = 10)
+    Mclm$control <- list(maxIter = 2)
     datS <- .dat
     datS$www <- www
     Mclm$data <- as.name("datS")
@@ -566,7 +560,7 @@ bpolr <- function(formula,
     clmObject <- eval(Mclm)
     options(warn = 0)
     ## zeta is what is called tau here
-    pars <- c(clmObject$beta, clmObject$alpha[-c(1:q)],
+    pars <- c(clmObject$beta, -clmObject$alpha[-c(1:q)],
               clmObject$alpha[1:q], clmObject$zeta)
   }
   else {
@@ -592,7 +586,6 @@ bpolr <- function(formula,
   pars <- pars[!aliased]
 
   parsPrev <- pars
-
   ## if maxit is 0 then simply evaluate everything at start
   if (maxit > 0) {
     ## Increase maxit by 1; otherwise if maxit is 1 nothing happens
@@ -630,6 +623,7 @@ bpolr <- function(formula,
               format(1/kappa(infoInv, exact = TRUE), nsmall = 5), "\n")
           cat("Scores:\n", format(scores + adjustment, scientific = TRUE), "\n")
           cat("===========================\n")
+          browser()
         }
         pars <- pars +
           2^(-stepFactor) * (step <- infoInv %*% scores - bias)
