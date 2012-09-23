@@ -12,6 +12,8 @@
 ## organise <- function(formula, data, weights, subset, na.action,
 ##                      contrasts = NULL) {
 organise <- function(formula, contrasts = NULL, mf,
+#                     offsetLinear = NULL,
+#                     offsetScale = NULL,
                      drop.only.mid.categories = FALSE,
                      drop.empty.categories = FALSE) {
   require(gnm)
@@ -104,6 +106,12 @@ organise <- function(formula, contrasts = NULL, mf,
     nam <- c(nam, "TEMPORARYVARIABLE")
   }
 
+
+  ## ### Offsets
+  ## .dataCurrent$offsetLinear <- offsetLinear
+  ## .dataCurrent$offsetScale <- offsetScale
+
+
   .dataCurrent <- expandCategorical(.dataCurrent, responseName, group = FALSE)
   .dataCurrent[["(weights)"]] <- c(.dataCurrent[["(weights)"]] * .dataCurrent[["count"]])
   inds <- match(c(nam[-1], nam[1]), names(.dataCurrent))
@@ -116,6 +124,7 @@ organise <- function(formula, contrasts = NULL, mf,
 
   ## Remove any non-observed categories
   attr(.dataCurrent, "terms") <- termsmf
+
   if (drop.empty.categories) {
     empty <- tapply(model.weights(.dataCurrent),
                     Y <- model.response(.dataCurrent),
@@ -274,7 +283,6 @@ organise <- function(formula, contrasts = NULL, mf,
   offsetS <- offsetS[-seq(nlev, N, nlev)]
   offsetN <- offsetN[-seq(nlev, N, nlev)]
 
-
   freqs <- matrix(.dataCurrent[["(weights)"]], nrow = nlev)
   list(XL = XL,
        XLinear = XLinear,
@@ -320,6 +328,8 @@ bpolr <- function(formula,
                   history = TRUE,
                   trace = FALSE,
                   drop.empty.categories = TRUE,
+#                  offsetLinear = NULL,
+#                  offsetScale = NULL,
                   ...) {
   require(ordinal)
   require(Formula)
@@ -384,9 +394,10 @@ bpolr <- function(formula,
   mf <- eval(mf, parent.frame())
 
   object <- organise(formula, contrasts, mf,
+#                     offsetLinear = offsetLinear,
+#                     offsetScale = offsetScale,
                      drop.empty.categories = drop.empty.categories,
                      drop.only.mid.categories = (method == "BR"))
-
 
   ## subset <- if (missing(subset)) NULL else subset
   na.action <- if (missing(na.action)) NULL else na.action
@@ -461,7 +472,7 @@ bpolr <- function(formula,
     tau <- pars[seq.int(length.out = pXS) + q + pXL]
     etas <- matrix(c(drop(XLinear %*% c(beta, alpha)) - offsetL)/
                    exp(drop(XS %*% tau + offsetS)), nrow = q)
-    Z <- cbind(XLinear/exp(drop(XS %*% tau)), if (pXS > 0) -XS*c(etas) else NULL)
+    Z <- cbind(XLinear/exp(drop(XS %*% tau  + offsetS)), if (pXS > 0) -XS*c(etas) else NULL)
     cumprob <- pfun(etas)
     gs <- dfun(etas)
     prob <- apply(cumprob, 2, function(x) diff(c(0, x, 1)))
@@ -549,11 +560,15 @@ bpolr <- function(formula,
     Mclm[[1L]] <- as.name("clm")
     Mclm$formula <- object$locationFormula
     Mclm$scale <- object$scaleFormula
+#    Mclm$offsetLinear <- NULL
+#    Mclm$offsetScale <- NULL
     Mclm$nominal <- object$nominalFormula
     Mclm$link <- as.name("link")
     Mclm$weights <-as.name("www")
     Mclm$control <- list(maxIter = 2)
     datS <- .dat
+    off <- grep("offset", names(datS))
+    names(datS)[off] <- sub("\\)", "", sub("offset\\(", "", names(datS)[off]))
     datS$www <- www
     Mclm$data <- as.name("datS")
     options(warn = -1)
@@ -574,6 +589,7 @@ bpolr <- function(formula,
         stop("'start' is not of the correct length", call. = FALSE)
     }
     pars <- start
+    browser()
   }
 
   step <- .Machine$integer.max
