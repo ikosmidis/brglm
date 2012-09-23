@@ -715,7 +715,7 @@ bpolr <- function(formula,
                convergence = (niter < maxit) & !failedInv,
                niter = niter,
                history = historyEstimates,
-               boundaryEstimates = failedInv,
+               boundaryEstimates = failedInv | inadmissible,
                inadmissible = inadmissible,
                method = method,
                eta = fit$eta,
@@ -770,6 +770,8 @@ simulate.bpolr <- function(object) {
   }
   mf
 }
+
+
 print.bpolr <- function (x, scoreDigits = 2, ...)
 {
     if (!is.null(cl <- x$call)) {
@@ -802,10 +804,13 @@ print.bpolr <- function (x, scoreDigits = 2, ...)
         "\n")
     if (nzchar(mess <- naprint(x$na.action)))
         cat("(", mess, ")\n", sep = "")
-    if (!x$convergence)
-        cat("Warning: did not converge as iteration limit reached\n")
+    if (x$boundaryEstimates) {
+      cat("Warning: failed to invert the Fisher information. Iteration stopped prematurely\n")
+    }
     if (x$inadmissible)
         cat("Warning: inadmissible parameter values\n")
+    if (!x$convergence)
+      cat("Warning: fitting algorithm did not converge\n")
     invisible(x)
 }
 
