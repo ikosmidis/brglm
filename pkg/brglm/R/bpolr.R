@@ -328,6 +328,7 @@ bpolr <- function(formula,
                   history = TRUE,
                   trace = FALSE,
                   drop.empty.categories = TRUE,
+                  stepFactor.init = 0,
 #                  offsetLinear = NULL,
 #                  offsetScale = NULL,
                   ...) {
@@ -368,7 +369,8 @@ bpolr <- function(formula,
   mf <- match.call(expand.dots = FALSE)
   mf$contrasts <- mf$start <-
     mf$model <- mf$link <- mf$method <- mf$maxit <- mf$epsilon <-
-      mf$history <- mf$trace <- mf$... <- mf$drop.empty.categories <- NULL
+      mf$history <- mf$trace <- mf$... <- mf$drop.empty.categories <-
+        mf$stepFactor.init <- NULL
   mf$drop.unused.levels <- TRUE
   oformula <- as.formula(formula)
   formula <- as.Formula(formula)
@@ -608,12 +610,15 @@ bpolr <- function(formula,
     ## because we move back to parsPrev after the end of the iteration
     for (niter in 1:(maxit + 1)) {
       stepPrev <- step
-      stepFactor <- 0
+      ## if stepFactor is set to zero the we have the most agressive
+      ## first step, but we can be conservative here if
+      ## stepFactor.init is set to a value greater than 0
+      stepFactor <- stepFactor.init
       testhalf <- TRUE
       if (history) {
         historyEstimates <- cbind(historyEstimates, pars)
       }
-      while (testhalf & stepFactor < 11) {
+      while (testhalf & stepFactor < 16) {
         fit <- fitFun(pars, deriv = 2L)
         scores <- gradFun(pars, fit = fit)
         infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
