@@ -129,9 +129,15 @@ organise <- function(formula, contrasts = NULL, mf,
     empty <- tapply(model.weights(.dataCurrent),
                     Y <- model.response(.dataCurrent),
                     sum) == 0
+    ## If you need to drop all but one category then kepp the
+    ## non-empty one with one and only one empty category
+    nlev <- nlevels(Y)
     if (any(empty)) {
-      if (drop.only.mid.categories & (empty[1] | empty[nlevels(Y)])) {
-        empty[1] <- empty[nlevels(Y)] <- FALSE
+      if (drop.only.mid.categories & (empty[1] | empty[nlev])) {
+        empty[1] <- empty[nlev] <- FALSE
+      }
+      if (sum(!empty) < 2) {
+        empty[max(which(empty))] <- FALSE
       }
       empty <- which(empty)
       .dataCurrent <- .dataCurrent[!match(Y,  levels(Y)[empty], nomatch = 0), ]
@@ -591,7 +597,6 @@ bpolr <- function(formula,
         stop("'start' is not of the correct length", call. = FALSE)
     }
     pars <- start
-    browser()
   }
 
   step <- .Machine$integer.max
@@ -681,7 +686,6 @@ bpolr <- function(formula,
   scores <- gradFun(pars, fit = fit)
   infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
 
-
   ## if method is BR then calcuate adjusted score functions else do
   ## not estimate their value
   if (method == "BR") {
@@ -713,10 +717,15 @@ bpolr <- function(formula,
   alpha <- parsN[alphaNames]
   tau <- parsN[tauNames]
 
-  ## Extend the inverse of the FIsher Information to include aliased paraeters
-  vcov <- structure(matrix(NA, length(coefNames), length(coefNames)),
-                    .Dimnames = list(coefNames, coefNames))
-  vcov[!aliased, !aliased] <- infoInv
+  ## Extend the inverse of the FIsher Information to include aliased parameters
+  if (inherits(infoInv, "try-error")) {
+    vcov <- infoInv
+  }
+  else {
+    vcov <- structure(matrix(NA, length(coefNames), length(coefNames)),
+                      .Dimnames = list(coefNames, coefNames))
+    vcov[!aliased, !aliased] <- infoInv
+  }
 
   inadmissible <- any((prob < 0) | (prob > 1))
 
