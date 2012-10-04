@@ -2,7 +2,7 @@
 
 ### Clean up calls to names in bpolr
 
-## Fix the odd handling of nominal effects, ie. sign...
+## Fix the odd handling of nominal effects, ie. sign...DONE. Now the nominal effects are handled as the regressors do -\beta x
 
 ## .dat is redundant object in bpolr
 
