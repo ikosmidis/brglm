@@ -603,6 +603,7 @@ bpolr <- function(formula,
   historyEstimates <- NULL
   niter <- 0
   failedInv <- FALSE
+  grad <- 10
 
   #### Fix me --- too much names here...
   names(pars) <- coefNames
@@ -642,6 +643,7 @@ bpolr <- function(formula,
           bias <- 0
           adjustment <- 0
         }
+        grad <- scores + adjustment
         if (trace) {
           cat("===========================\n")
           cat("Iteration: ", niter, "step factor", 2^(-stepFactor),  "\n")
@@ -656,7 +658,7 @@ bpolr <- function(formula,
         stepFactor <- stepFactor + 1
         testhalf <- drop(crossprod(stepPrev) < crossprod(step))
       }
-      if (failedInv | (all(abs(step) < epsilon))) {
+      if (failedInv | (all(abs(grad) < epsilon))) {
         break
       }
     }
