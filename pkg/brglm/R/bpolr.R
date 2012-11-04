@@ -628,7 +628,7 @@ bpolr <- function(formula,
         fit <- fitFun(pars, deriv = 2L)
         scores <- gradFun(pars, fit = fit)
         infoInv <- infoFun(pars, fit = fit, inverse = TRUE)
-        if (failedInv <- inherits(infoInv, "try-error")) {
+        if (failedInv <- (inherits(infoInv, "try-error") | any(is.na(infoInv)))) {
           warning("failed to invert the information matrix: iteration stopped prematurely")
           break
         }
