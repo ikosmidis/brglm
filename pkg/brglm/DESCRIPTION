@@ -1,7 +1,7 @@
 Package: brglm
-Title: Bias reduction in binomial-response generalized linear models
+Title: Bias Reduction in Binomial-Response Generalized Linear Models
 Version: 0.6.1
-Date: 2013-11-08
+Date: 2017-06-28
 Author: Ioannis Kosmidis <i.kosmidis@ucl.ac.uk>
 Maintainer: Ioannis Kosmidis <i.kosmidis@ucl.ac.uk>
 URL: http://www.ucl.ac.uk/~ucakiko/index.html

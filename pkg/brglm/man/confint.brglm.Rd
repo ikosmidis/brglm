@@ -144,6 +144,7 @@ confint(m.brglm.cloglog, ci.method = "union")
 confint(m.brglm.cloglog, ci.method = "mean")
 ## End example
 }
+\dontrun{
 ## Begin Example 2
 y <- c(1, 1, 0, 0)
 totals <- c(2, 2, 2, 2)
@@ -153,6 +154,7 @@ m1 <- brglm(y/totals ~ x1 + x2, weights = totals,
             family = binomial(cloglog))
 p.m1 <- profile(m1)
 confint(p.m1, method="zoom")
+}
 }
 \keyword{models}
 \keyword{htest}
