@@ -1,21 +1,21 @@
 useDynLib("brglm",.registration=TRUE)
 
-export(modifications, 
-       checkModifications, 
-       summary.brglm, 
-       print.summary.brglm, 
-       print.brglm, 
-       brglm, 
+export(modifications,
+       checkModifications,
+       summary.brglm,
+       print.summary.brglm,
+       print.brglm,
+       brglm,
        brglm.fit,
-       brglm.control, 
-       glm.control1, 
+       brglm.control,
+       glm.control1,
        separation.detection,
        gethats,
        penalizedDeviance,
        modifiedScoreStatistic,
-       profile.brglm, 
-       confint.brglm, 
-       confint.profile.brglm, 
+       profile.brglm,
+       confint.brglm,
+       confint.profile.brglm,
        print.profile.brglm,
        plot.profile.brglm,
        pairs.profile.brglm)
@@ -30,3 +30,11 @@ S3method(pairs, profile.brglm)
 S3method(print, profile.brglm)
 S3method(print, summary.brglm)
 
+importFrom("graphics", "pairs", "plot", "points")
+importFrom("stats", ".getXlevels", "binomial", "coef", "dnorm",
+           "glm.control", "glm.fit", "is.empty.model", "model.extract",
+           "model.matrix", "model.offset", "model.response",
+           "model.weights", "naprint", "pnorm", "printCoefmat",
+           "qchisq", "residuals", "summary.glm", "symnum", "update")
+
+import(profileModel)
