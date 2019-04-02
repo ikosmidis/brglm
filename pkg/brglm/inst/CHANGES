@@ -1,3 +1,7 @@
+Changes since version 0.6.1
+----------------------------
+* Updated author and maintainer details
+
 Changes since version 0.5.8
 ----------------------------
 * Removed dependence of print.glm on print.glm. Instead the generic method is called (thanks to Brian Ripley for contacting me on this).
