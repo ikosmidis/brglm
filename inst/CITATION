@@ -1,0 +1,15 @@
+if(!exists("meta") || is.null(meta)) meta <- packageDescription("brglm")
+year <- sub("-.*", "", meta$Date)
+note <- sprintf("R package version %s", meta$Version)
+url <- sprintf("https://CRAN.R-project.org/package=brglm", meta$Version)
+
+citHeader("To cite package 'brglm' in publications use:")
+
+bibentry(bibtype = "Manual",
+         title = "{brglm}: Bias Reduction in Binary-Response Generalized Linear Models",
+         author = c(person("Ioannis", "Kosmidis")),
+         year = year,
+         note = note,
+         url = "http://www.ucl.ac.uk/~ucakiko/software.html")
+
+
