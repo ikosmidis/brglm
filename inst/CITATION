@@ -10,6 +10,6 @@ bibentry(bibtype = "Manual",
          author = c(person("Ioannis", "Kosmidis")),
          year = year,
          note = note,
-         url = "http://www.ucl.ac.uk/~ucakiko/software.html")
+         url = "https://cran.r-project.org/package=brglm")
 
 
