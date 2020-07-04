@@ -4,7 +4,7 @@
 \title{Computes confidence intervals of parameters for bias-reduced estimation}
 \description{
   Computes confidence intervals for one or more parameters when
-  estimation is performed using \code{\link{brglm}}. The resultant confidence
+  estimation is performed using \code{\link{brglm}}. The resulting confidence
   intervals are based on manipulation of the profiles of the deviance,
   the penalized deviance and the modified score statistic (see
   \code{\link{profileObjectives}}).

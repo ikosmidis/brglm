@@ -16,7 +16,7 @@ improvement over traditional maximum likelihood because:
 \itemize{
 \item the bias-reduced estimator is second-order unbiased and has smaller
       variance than the maximum likelihood estimator and
-\item the resultant estimates and their corresponding standard errors
+\item the resulting estimates and their corresponding standard errors
       are \bold{always} finite while the maximum likelihood estimates
       can be infinite (in situations where complete or quasi separation
       occurs).
@@ -138,7 +138,7 @@ For other language related details see the details section in
     parameters at the final iteration. If \code{pl = TRUE} they are the
     derivatives of the penalized likelihood at the final iteration.}
   \item{FisherInfo}{the Fisher information matrix evaluated at the
-    resultant estimates. Only available when \code{method = "brglm.fit"}.}
+    resulting estimates. Only available when \code{method = "brglm.fit"}.}
   \item{hats}{the diagonal elements of the hat matrix. Only available
     when \code{method = "brglm.fit"}}
   \item{nIter}{the number of iterations that were required until
@@ -146,7 +146,7 @@ For other language related details see the details section in
   \item{cur.model}{a list with components \code{ar} and \code{at} which
     contains the values of the additive modifications to the responses
     (\code{y}) and to the binomial totals (\code{prior.weights}) at
-    the resultant estimates (see \code{\link{modifications}} for more
+    the resulting estimates (see \code{\link{modifications}} for more
     information). Only available  when \code{method = "brglm.fit"}.}
   \item{model}{as in \code{\link{glm}}.}
   \item{call}{as in \code{\link{glm}}.}
@@ -232,19 +232,22 @@ For other language related details see the details section in
      the modified scores or the penalized likelihood is an on-going
      research topic and will be implemented as soon as it is  concluded.
 
-  2. The use of Akaike's information criterion (AIC) for
-     model selection when \code{method = "brglm.fit"} is
-     controversial. AIC was developed under the assumptions that (i)
+  2. The use of Akaike's information criterion (AIC) for model selection
+     when \code{method = "brglm.fit"} requires special
+     justification. AIC was developed under the assumptions that (i)
      estimation is by maximum likelihood and (ii) that estimation is
      carried out in a parametric family of distributions that contains
      the \dQuote{true} model. At least the first assumption is not valid
      when using \code{method = "brglm.fit"}. However, since the MLE is
      asymptotically unbiased, asymptotically the modified-scores
-     approach is equivalent to maximum likelihood. A more appropriate
-     information criterion seems to be Konishi's generalized information
-     criterion (see Konishi & Kitagawa, 1996, Sections 3.2 and 3.3), which
-     will be implemented in a future version.
-  }
+     approach is equivalent to maximum likelihood, and hence the use of
+     the AIC at the modified-scores based estimates is asymptotically
+     correct, but the differences from the typical AIC (at the maximum
+     likelihood estimates) can be notable especially in small samples. A
+     more appropriate information criterion seems to be Konishi's
+     generalized information criterion (see Konishi & Kitagawa, 1996,
+     Sections 3.2 and 3.3), which will be implemented in a future
+     version. }
 
 \references{
   Bull, S. B., Lewinger, J. B. and Lee, S. S. F. (2007). Confidence

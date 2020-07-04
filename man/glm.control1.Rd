@@ -19,7 +19,7 @@ glm.control1(epsilon = 1e-08, maxit = 25, trace = FALSE, ...)
   The only difference with \code{\link{glm.control}} is that
   \code{glm.control1} supports further arguments to be passed from other
   methods. However, this additional arguments have no effect on the
-  resultant list.
+  resulting list.
 }
 \author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
 \keyword{iteration}

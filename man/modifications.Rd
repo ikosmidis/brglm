@@ -37,7 +37,7 @@ modifications(family, pl = FALSE)
   of the additive modifications to the actual responses and totals,
   respectively.
 
-  Since the resultant function is used in \code{\link{brglm.fit}}, for
+  Since the resulting function is used in \code{\link{brglm.fit}}, for
   efficiency reasons no check is made for \code{p >= 0 | p <= 1}, for
   \code{length(at) == length(p)} and for \code{length(ap) == length(p)}.
 }

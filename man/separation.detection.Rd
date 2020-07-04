@@ -23,7 +23,7 @@ separation.detection(fit, nsteps = 30)
   corresponding ones resulted for
   \code{control = glm.control(maxit = 1)}. Based on the results in Lesaffre
   & Albert (1989), if the sequence of ratios in any column of the
-  resultant matrix diverges, then separation occurs and the maximum
+  resulting matrix diverges, then separation occurs and the maximum
   likelihood estimate for the corresponding parameter has value minus or
   plus infinity.
 }
