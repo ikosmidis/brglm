@@ -42,10 +42,11 @@ modifications(family, pl = FALSE)
   \code{length(at) == length(p)} and for \code{length(ap) == length(p)}.
 }
 
-\section{Construction of custom pseudo-data representations}{
-  If \eqn{y^*}{y*} are the pseudo-responses (pseudo-counts) and
+\section{Construction of custom pseudo-data representations}{ If
+  \eqn{y^*}{y*} are the pseudo-responses (pseudo-counts) and
   \eqn{m^*}{m*} are the pseudo-totals then we call the pair \eqn{(y^*,
-  m^*)}{(y*, m*)} a pseudo-data representation. Both the modified-scores approach and the maximum penalized likelihood have a common property:
+  m^*)}{(y*, m*)} a pseudo-data representation. Both the modified-scores
+  approach and the maximum penalized likelihood have a common property:
 
 there exists \eqn{(y^*, m^*)}{(y*, m*)} such that if we replace the actual data
   \eqn{(y, m)} with \eqn{(y^*, m^*)}{(y*, m*)} in the expression for the
