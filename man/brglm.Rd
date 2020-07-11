@@ -233,12 +233,12 @@ For other language related details see the details section in
      research topic and will be implemented as soon as it is  concluded.
 
   2. The use of Akaike's information criterion (AIC) for model selection
-     when \code{method = "brglm.fit"} requires special
-     justification. AIC was developed under the assumptions that (i)
-     estimation is by maximum likelihood and (ii) that estimation is
-     carried out in a parametric family of distributions that contains
-     the \dQuote{true} model. At least the first assumption is not valid
-     when using \code{method = "brglm.fit"}. However, since the MLE is
+     when \code{method = "brglm.fit"} requires special attention. AIC
+     was developed under the assumptions that (i) estimation is by
+     maximum likelihood and (ii) that estimation is carried out in a
+     parametric family of distributions that contains the \dQuote{true}
+     model. At least the first assumption is not valid when using
+     \code{method = "brglm.fit"}. However, since the MLE is
      asymptotically unbiased, asymptotically the modified-scores
      approach is equivalent to maximum likelihood, and hence the use of
      the AIC at the modified-scores based estimates is asymptotically
