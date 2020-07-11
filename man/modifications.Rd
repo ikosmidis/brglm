@@ -256,6 +256,29 @@ br.custom.family <- function(p) {
 m1 <- brglm(y/totals~x1+x2,weights=totals,family=binomial(my.probit))
 m2 <- glm((y+0.5)/(totals+1)~x1+x2,weights=totals+1,family=binomial(probit))
 # m1 and m2 should be the same.
+# End example
+# Begin example 3: Maximum penalized likelihood for logistic regression, 
+# with the penalty being a powerof the Jeffreys prior (`.const` below)
+# Setup a custom logit link
+mylogit <- make.link("logit")
+mylogit$name <- "mylogit"
+## Set-up the custom family
+br.custom.family <- function(p) {
+     list(ar = .const * p/p, at = 2 * .const * p/p)
+}
+data("lizards")
+## The reduced-bias fit is
+.const <- 1/2
+brglm(cbind(grahami, opalinus) ~ height + diameter +
+          light + time, family = binomial(mylogit), data=lizards)
+## which is the same as what brglm does by default for logistic regression
+brglm(cbind(grahami, opalinus) ~ height + diameter +
+          light + time, family = binomial(logit), data=lizards)
+## Stronger penalization (e.g. 5/2) can be achieved by 
+.const <- 5/2
+brglm(cbind(grahami, opalinus) ~ height + diameter +
+          light + time, family = binomial(mylogit), data=lizards)
+# End example 
 }
 \keyword{models}
 \keyword{regression}

@@ -9,4 +9,3 @@ Description: Fit generalized linear models with binomial responses using either 
 License: GPL (>= 2)
 Depends: R (>= 2.6.0), profileModel
 Suggests: MASS
-RoxygenNote: 6.1.1
