@@ -169,6 +169,10 @@ there exists \eqn{(y^*, m^*)}{(y*, m*)} such that if we replace the actual data
   Kosmidis, I. (2007). Bias reduction in exponential family nonlinear
   models. \emph{PhD Thesis}, Department of Statistics, University of
   Warwick.
+
+  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
+  and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}
 }
 \seealso{\code{\link{brglm}}, \code{\link{brglm.fit}}}
 \examples{

@@ -33,7 +33,13 @@ separation.detection(fit, nsteps = 30)
 }
 \references{
 Lesaffre, E. and Albert, A. (1989). Partial separation in logistic
-discrimination. \emph{J. R. Statist. Soc. \bold{B}}, \bold{51}, 109--116.
+discrimination. \emph{J. R. Statist. Soc. \bold{B}}, \bold{51},
+109--116.
+
+Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
+and shrinkage in binomial-response generalized linear
+models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}
+
 }
 
 \author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
