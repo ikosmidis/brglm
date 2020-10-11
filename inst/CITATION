@@ -1,15 +1,20 @@
-if(!exists("meta") || is.null(meta)) meta <- packageDescription("brglm")
 year <- sub("-.*", "", meta$Date)
 note <- sprintf("R package version %s", meta$Version)
-url <- sprintf("https://CRAN.R-project.org/package=brglm", meta$Version)
 
-citHeader("To cite package 'brglm' in publications use:")
+citHeader("To cite package 'brglm' in publications use the following, as appropriate:")
 
-bibentry(bibtype = "Manual",
+c(bibentry(bibtype = "Manual",
          title = "{brglm}: Bias Reduction in Binary-Response Generalized Linear Models",
          author = c(person("Ioannis", "Kosmidis")),
          year = year,
          note = note,
-         url = "https://cran.r-project.org/package=brglm")
+         url = "https://cran.r-project.org/package=brglm"),
+    bibentry(bibtype = "article",
+           title = "Jeffreys-prior penalty, finiteness and shrinkage in binomial-response generalized linear models",
+           author = c(person(given = "Ioannis", family = "Kosmidis"),
+                      person(given = "David", family = "Firth")),
+           year = 2020,
+           journal = "Biometirka",
+           url = "https://doi.org/10.1093/biomet/asaa052"))
 
 
