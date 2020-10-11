@@ -242,7 +242,7 @@ For other language related details see the details section in
 
      Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
      finiteness and shrinkage in binomial-response generalized linear
-     models, \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+     models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
 
   Bull, S. B., Lewinger, J. B. and Lee, S. S. F. (2007). Confidence
   intervals for multinomial logistic regression in sparse
@@ -271,14 +271,10 @@ For other language related details see the details section in
   Kosmidis, I. and Firth, D. (2009). Bias reduction in exponential
   family nonlinear models. \emph{Biometrika}
   \bold{96}, 793--804.
-
-  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
-  and shrinkage in binomial-response generalized linear
-  models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}
   
 }
 
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 
 \seealso{\code{\link{glm}}, \code{\link{glm.fit}}}
 

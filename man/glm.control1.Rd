@@ -21,5 +21,5 @@ glm.control1(epsilon = 1e-08, maxit = 25, trace = FALSE, ...)
   methods. However, this additional arguments have no effect on the
   resulting list.
 }
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \keyword{iteration}

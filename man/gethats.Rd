@@ -21,6 +21,6 @@ gethats(nobs, nvars, x.t, XWXinv, ww)
   A vector containing the diagonal elements of the hat matrix.
 }
 
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \seealso{\code{\link{hatvalues}}, \code{\link{brglm.fit}}}
 \keyword{regression}

@@ -36,6 +36,10 @@ modifiedScoreStatistic(fm, X, dispersion = 1)
   A scalar.
 }
 \references{
+  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
+  finiteness and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+
   Bull, S. B., Lewinger, J. B. and Lee, S. S. F. (2007). Confidence
   intervals for multinomial logistic regression in sparse data.
   \emph{Statistics in Medicine} \bold{26}, 903--918.
@@ -43,11 +47,7 @@ modifiedScoreStatistic(fm, X, dispersion = 1)
   Heinze, G. and Schemper, M. (2002). A solution to the problem of
   separation in logistic regression.
   \emph{Statistics in Medicine} \bold{21}, 2409--2419.
-
-  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
-  and shrinkage in binomial-response generalized linear
-  models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}  
 }
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \seealso{\code{\link[profileModel]{profileModel}}, \code{\link{profile.brglm}}.}
 \keyword{models}

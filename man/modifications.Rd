@@ -164,15 +164,16 @@ there exists \eqn{(y^*, m^*)}{(y*, m*)} such that if we replace the actual data
   \code{pmax(get("hats",parent.frame()),.Machine\$double.eps)} within the
   custom modification function (see also Examples).
 }
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \references{
+  
+  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
+  finiteness and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+
   Kosmidis, I. (2007). Bias reduction in exponential family nonlinear
   models. \emph{PhD Thesis}, Department of Statistics, University of
   Warwick.
-
-  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
-  and shrinkage in binomial-response generalized linear
-  models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}
 }
 \seealso{\code{\link{brglm}}, \code{\link{brglm.fit}}}
 \examples{

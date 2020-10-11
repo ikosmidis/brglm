@@ -32,17 +32,17 @@ separation.detection(fit, nsteps = 30)
   contains the ratios of the estimated asymptotic standard errors.
 }
 \references{
+  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
+  finiteness and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+  
 Lesaffre, E. and Albert, A. (1989). Partial separation in logistic
 discrimination. \emph{J. R. Statist. Soc. \bold{B}}, \bold{51},
 109--116.
 
-Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty, finiteness
-and shrinkage in binomial-response generalized linear
-models. \emph{Biometrika} (to appear). \url{http://arxiv.org/abs/1812.01938}
-
 }
 
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 
 \examples{
 ## Begin Example

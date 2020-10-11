@@ -58,7 +58,7 @@
     \item{\code{pairs}}{see \code{\link{plot.profile.brglm}}.}
   }
 }
-\author{Ioannis Kosmidis, \email{i.kosmidis@ucl.ac.uk}}
+\author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \seealso{\code{\link[profileModel]{profileModel}}, \code{\link{profile.brglm}}.}
 \examples{
 # see example in 'confint.brglm'.
