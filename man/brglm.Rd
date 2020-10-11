@@ -233,7 +233,9 @@ For other language related details see the details section in
      research topic and will be implemented as soon as it is concluded.
 
   2. The use of Akaike's information criterion (AIC) for model selection
-     when \code{method = "brglm.fit"} is still asymptotically valid. AIC
+     when \code{method = "brglm.fit"} is asymptotically valid, because
+     the log-likelihood derivatives dominate the modification (in terms
+     of asymptotic order). 
 }
 
    \references{
