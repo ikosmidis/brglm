@@ -230,26 +230,18 @@ For other language related details see the details section in
      \code{\link{anova}}, etc.) on objects of class
      \code{"brglm"}. Model comparison when estimation is performed using
      the modified scores or the penalized likelihood is an on-going
-     research topic and will be implemented as soon as it is  concluded.
+     research topic and will be implemented as soon as it is concluded.
 
   2. The use of Akaike's information criterion (AIC) for model selection
-     when \code{method = "brglm.fit"} requires special attention. AIC
-     was developed under the assumptions that (i) estimation is by
-     maximum likelihood and (ii) that estimation is carried out in a
-     parametric family of distributions that contains the \dQuote{true}
-     model. At least the first assumption is not valid when using
-     \code{method = "brglm.fit"}. However, since the MLE is
-     asymptotically unbiased, asymptotically the modified-scores
-     approach is equivalent to maximum likelihood, and hence the use of
-     the AIC at the modified-scores based estimates is asymptotically
-     correct, but the differences from the typical AIC (at the maximum
-     likelihood estimates) can be notable especially in small samples. A
-     more appropriate information criterion seems to be Konishi's
-     generalized information criterion (see Konishi & Kitagawa, 1996,
-     Sections 3.2 and 3.3), which will be implemented in a future
-     version. }
+     when \code{method = "brglm.fit"} is still asymptotically valid. AIC
+}
 
-\references{
+   \references{
+
+     Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
+     finiteness and shrinkage in binomial-response generalized linear
+     models, \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+
   Bull, S. B., Lewinger, J. B. and Lee, S. S. F. (2007). Confidence
   intervals for multinomial logistic regression in sparse
   data. \emph{Statistics in Medicine} \bold{26}, 903--918.
@@ -269,9 +261,6 @@ For other language related details see the details section in
   Heinze, G. and Schemper, M. (2002). A solution to the problem of
   separation in logistic regression. \emph{Statistics in Medicine}
   \bold{21}, 2409--2419.
-
-  Konishi, S. and Kitagawa, G. (1996). Generalised information criteria
-  in model selection. \emph{Biometrika} \bold{83}, 875--890.
 
   Kosmidis, I. (2007). Bias reduction in exponential family nonlinear
   models. \emph{PhD Thesis}, Department of Statistics, University of
