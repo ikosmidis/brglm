@@ -19,7 +19,8 @@ improvement over traditional maximum likelihood because:
 \item the resulting estimates and their corresponding standard errors
       are \bold{always} finite while the maximum likelihood estimates
       can be infinite (in situations where complete or quasi separation
-      occurs).
+      occurs); see Kosmidis & Firth (2021) for the proof of finiteness in
+      logistic regression models.
 }
 }
 \usage{
@@ -238,12 +239,12 @@ For other language related details see the details section in
      of asymptotic order). 
 }
 
-   \references{
+\references{
 
-     Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
-     finiteness and shrinkage in binomial-response generalized linear
-     models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
-
+  Kosmidis I. and Firth D. (2021). Jeffreys-prior penalty, finiteness
+  and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}, \bold{108}, 71--82.
+  
   Bull, S. B., Lewinger, J. B. and Lee, S. S. F. (2007). Confidence
   intervals for multinomial logistic regression in sparse
   data. \emph{Statistics in Medicine} \bold{26}, 903--918.

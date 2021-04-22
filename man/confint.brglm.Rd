@@ -55,17 +55,19 @@
   profiles of the penalized likelihood, when estimation is performed
   using maximum penalized likelihood.
 
-  Kosmidis (2007) illustrated that because of the shape of the
-  penalized likelihood, confidence intervals based on the penalized
-  likelihood could exhibit low or even zero coverage for hypothesis
-  testing on large parameter values and also misbehave illustrating severe
-  oscillation (see Brown et. al., 2001). Kosmidis (2007)  suggested an
+  Kosmidis (2007) illustrated that because of the shape of the penalized
+  likelihood, confidence intervals based on the penalized likelihood
+  could exhibit low or even zero coverage for hypothesis testing on
+  large parameter values and also misbehave illustrating severe
+  oscillation (see Brown et. al., 2001); see, also Kosmidis & Firth
+  (2021) for discussion on the schrinkage implied by bias reduction and
+  what that entails for inference. Kosmidis (2007) suggested an
   alternative confidence interval that is based on the union of the
-  confidence intervals  resulted by profiling the ordinary deviance for
+  confidence intervals resulted by profiling the ordinary deviance for
   the maximum likelihood fit and by profiling the penalized deviance for
-  the maximum penalized fit.  Such confidence intervals,  despite of
-  being slightly conservative,  illustrate less oscillation and avoid
-  the loss of coverage. Another possibility is to use the mean of the
+  the maximum penalized fit.  Such confidence intervals, despite of
+  being slightly conservative, illustrate less oscillation and avoid the
+  loss of coverage. Another possibility is to use the mean of the
   corresponding endpoints instead of \dQuote{union}. Yet unpublished
   simulation studies suggest that such confidence intervals are not as
   conservative as the \dQuote{union} based intervals but illustrate more
@@ -93,9 +95,9 @@
   the specified (or profiled) parameters.
 }
 \references{
-  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
-  finiteness and shrinkage in binomial-response generalized linear
-  models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
+  Kosmidis I. and Firth D. (2021). Jeffreys-prior penalty, finiteness
+  and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}, \bold{108}, 71--82. 
   
   Brown, L. D., Cai, T. T. and DasGupta, A. (2001).
   Interval estimation for a binomial proportion (with discussion).

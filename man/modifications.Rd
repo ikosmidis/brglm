@@ -166,11 +166,10 @@ there exists \eqn{(y^*, m^*)}{(y*, m*)} such that if we replace the actual data
 }
 \author{Ioannis Kosmidis, \email{ioannis.kosmidis@warwick.ac.uk}}
 \references{
+  Kosmidis I. and Firth D. (2021). Jeffreys-prior penalty, finiteness
+  and shrinkage in binomial-response generalized linear
+  models. \emph{Biometrika}, \bold{108}, 71--82. 
   
-  Kosmidis, I. and Firth, D. (2020). Jeffreys-prior penalty,
-  finiteness and shrinkage in binomial-response generalized linear
-  models. \emph{Biometrika}. \url{https://doi.org/10.1093/biomet/asaa052}
-
   Kosmidis, I. (2007). Bias reduction in exponential family nonlinear
   models. \emph{PhD Thesis}, Department of Statistics, University of
   Warwick.

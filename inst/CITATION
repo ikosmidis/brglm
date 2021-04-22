@@ -1,7 +1,7 @@
 year <- sub("-.*", "", meta$Date)
 note <- sprintf("R package version %s", meta$Version)
 
-citHeader("To cite package 'brglm' in publications use the following, as appropriate:")
+citHeader("To cite package 'brglm' in publications use at least one of the following, as appropriate. The finiteness and shrinkage properties of the reduced-bias estimator that 'brglm' computes for logistic regression is in Kosmidis & Firth (2021).")
 
 c(bibentry(bibtype = "Manual",
          title = "{brglm}: Bias Reduction in Binary-Response Generalized Linear Models",
@@ -13,8 +13,11 @@ c(bibentry(bibtype = "Manual",
            title = "Jeffreys-prior penalty, finiteness and shrinkage in binomial-response generalized linear models",
            author = c(person(given = "Ioannis", family = "Kosmidis"),
                       person(given = "David", family = "Firth")),
-           year = 2020,
+           year = 2021,
            journal = "Biometirka",
+           volume = 108,
+           number = 1,
+           pages = "71---82",
            url = "https://doi.org/10.1093/biomet/asaa052"))
 
 

@@ -1,3 +1,9 @@
+Changes since version 0.7.1
+----------------------------
+* Documentation updates: Updated citation to to Kosmidis & Firth (2021, Biometrika), and added pointers to it in help files.
+* Added depreciation warning for `detect.separation()` in light of the more comprehensive utilities provided by the 'detectseparation' R package (https://cran.r-project.org/package=detectseparation).
+* Updated on-load message.
+
 Changes since version 0.6.2
 ----------------------------
 * Documentation updates: advice on AIC and citation to Kosmidis & Firth (2020, Biometrika).
@@ -9,12 +15,12 @@ Changes since version 0.6.1
 
 Changes since version 0.5.8
 ----------------------------
-* Removed dependence of print.glm on print.glm. Instead the generic method is called (thanks to Brian Ripley for contacting me on this).
+* Removed dependence of `print.brglm()` on `print.glm()`. Instead the generic method is called (thanks to Brian Ripley for contacting me on this).
 
 Changes since version 0.5.7
 ----------------------------
-* Implemented a fix for correctly resetting the "warn" option value to what the user has set prior to the execution of `brglm.fit` (thanks to Kurt Hornik for contacting me on this)
-* Implemented a fix to avoid a warning related to the binding of n which is evaluated by family$initialize in `brglm.fit` (thanks to Kurt Hornik for contacting me on this)
+* Implemented a fix for correctly resetting the "warn" option value to what the user has set prior to the execution of `brglm.fit()` (thanks to Kurt Hornik for contacting me on this)
+* Implemented a fix to avoid a warning related to the binding of n which is evaluated by `family$initialize()` in `brglm.fit()` (thanks to Kurt Hornik for contacting me on this)
 
 Changes since version 0.5.6
 ----------------------------
@@ -23,12 +29,12 @@ Changes since version 0.5.6
 
 Changes since version 0.5.5
 ----------------------------
-* Added the `br.consts` argument to `brglm.control` which offers some handling of the starting values to the `brglm.fit` iteration.
+* Added the `br.consts` argument to `brglm.control()` which offers some handling of the starting values to the `brglm.fit()` iteration.
 * Updated contact and citation information.
 
 Changes since version 0.5.4
 ----------------------------
-* Improved constant adjustments for starting the fitting procedure in `brglm.fit`.
+* Improved constant adjustments for starting the fitting procedure in `brglm.fit()`.
 * Updated the references to papers in the help files.
 
 Changes since version 0.5.3
@@ -36,15 +42,15 @@ Changes since version 0.5.3
 * Minor corrections to the help files.
 * The reported AIC, was incorrect, due to a minor bug. This is now corrected.
 * Minor modifications to the separation.detection function
-* Due to a bug, `brglm` was mishandling observations with zero weight. This is now corrected.
-* Some improvements to profile and `confint` methods for `brglm` objects.
+* Due to a bug, `brglm()` was mishandling observations with zero weight. This is now corrected.
+* Some improvements to profile and `confint()` methods for `brglm` objects.
 * Added citation file.
 
 
 Changes since version 0.5.2
 ----------------------------
-* Corrected a bug in `brglm` that could cause division by zero while scaling the design matrix.
-* Due to a bug, `brglm.fit` was producing errors with model fits containing more that one aliased out parameters. This is now corrected (thanks to Aleks Jakulin for spotting the issue).
+* Corrected a bug in `brglm()` that could cause division by zero while scaling the design matrix.
+* Due to a bug, `brglm.fit()` was producing errors with model fits containing more that one aliased out parameters. This is now corrected (thanks to Aleks Jakulin for spotting the issue).
 * Corrected a bug, that could affect the predict methods when aliased out parameters appeared (thanks to Aleks Jakulin for spotting the issue).
 
 Changes since version 0.5-1:
