@@ -50,7 +50,7 @@
 }
 \note{
   Objects of class \code{"profile.brglm"} support the methods:
-  \itemize{
+  \describe{
     \item{\code{print}}{which prints the \code{"level"} attribute of the
       object, as well as the supported methods.}
     \item{\code{confint}}{see \code{\link{confint.brglm}}.}
