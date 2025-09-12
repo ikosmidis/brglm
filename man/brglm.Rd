@@ -13,7 +13,7 @@ of the maximum likelihood estimator. Fitting is performed using
 pseudo-data representations, as described in Kosmidis (2007, Chapter 5). For
 estimation in binomial-response GLMs, the bias-reduction method is an
 improvement over traditional maximum likelihood because:
-\itemize{
+\describe{
 \item the bias-reduced estimator is second-order unbiased and has smaller
       variance than the maximum likelihood estimator and
 \item the resulting estimates and their corresponding standard errors
@@ -169,7 +169,7 @@ For other language related details see the details section in
 
 \note{
   1. Supported methods for objects of class \code{"brglm"} are:
-  \itemize{
+  \describe{
     \item{\code{\link{print}}}{through \code{print.brglm}.}
     \item{\code{\link{summary}}}{through \code{summary.brglm}.}
     \item{\code{\link{coefficients}}}{inherited from the
