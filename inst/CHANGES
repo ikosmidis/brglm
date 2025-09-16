@@ -1,3 +1,7 @@
+Changes since version 0.7.2
+----------------------------
+* Fixed "Lost braces" note through PR https://github.com/ikosmidis/brglm/pull/1> thanks to GeraldineGomez@GitHub.
+
 Changes since version 0.7.1
 ----------------------------
 * Documentation updates: Updated citation to to Kosmidis & Firth (2021, Biometrika), and added pointers to it in help files.
